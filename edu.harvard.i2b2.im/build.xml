@@ -41,35 +41,40 @@
 	<!-- 								COMMON JAXB GENERATION 				 -->
 	<!-- =================================================================== -->
 	<target name="jaxb_gen" depends="init" description="Generate JAXB classes for i2b2 and Vocab Data messages">
-		<xjc extension="true" destdir="${gensrc}" removeOldOutput="no">
-			<schema dir="../${i2b2xmlproject}/xsd/hive/pdo_1.1" includes="i2b2_PDO.xsd" />
-			<schema dir="../${i2b2xmlproject}/xsd/cell/crc/pdo_1.1" includes="CRC_PDO_QRY.xsd" />
-			<schema dir="../${i2b2xmlproject}/xsd/hive/msg_1.1" includes="i2b2_response.xsd" />
-			<schema dir="../${i2b2xmlproject}/xsd/hive/msg_1.1" includes="i2b2_result_msg.xsd" />
-			<schema dir="../${i2b2xmlproject}/xsd/cell/crc/psm_1.1" includes="CRC_PSM_QRY.xsd" />
-			<schema dir="../${i2b2xmlproject}/xsd/cell/crc/psm_1.1" includes="CRC_PSM_QRY_query_definition.xsd" />
-			<schema dir="../${i2b2xmlproject}/xsd/cell/crc/psm_1.1" includes="CRC_PSM_QRY_analysis_definition.xsd" />
-			<schema dir="../${i2b2xmlproject}/xsd/cell/im" includes="IM_QRY.xsd" />
-			<schema dir="../${i2b2xmlproject}/xsd/cell/im" includes="IM_RESP.xsd" />
-			<schema dir="../${i2b2xmlproject}/xsd/cell/pm_1.1" includes="PM_USER.xsd" />
-<!--
-			<binding dir="." includes="etc/xsd/i2b2_response.xjb" />
-				<binding dir="." includes="etc/xsd/i2b2_pdo.xjb" />
-				<binding dir="." includes="etc/xsd/crc_pdo_qry.xjb" />
-				<binding dir="." includes="etc/xsd/crc_psm_gry_def.xjb" />
-				<binding dir="." includes="etc/xsd/crc_psm_qry.xjb" />
--->
-			<binding dir="." includes="etc/xsd/i2b2_response.xjb" />
-			<binding dir="." includes="etc/xsd/i2b2_pm_bindings.xjb" />
-			<binding dir="." includes="etc/xsd/crc_psm_qry.xjb" />
-			<binding dir="." includes="etc/xsd/crc_psm_analysisdefinition.xjb" />
-			<binding dir="." includes="etc/xsd/crc_psm_querydefinition.xjb" />
-			<binding dir="." includes="etc/xsd/crc_hive_result.xjb" />
-			<binding dir="." includes="etc/xsd/i2b2_pdo.xjb" />
-			<binding dir="." includes="etc/xsd/crc_pdo_qry.xjb" />			
-			<binding dir="." includes="etc/xsd/i2b2_wdo_bindings.xjb" />			
-		
-		</xjc>
+			<exec executable="xjc">
+						        <arg value="-d"/>
+						        <arg value="${gensrc}"/>
+				<arg value="../${i2b2xmlproject}/xsd/hive/pdo_1.1/i2b2_PDO.xsd" />
+				<arg value="../${i2b2xmlproject}/xsd/cell/crc/pdo_1.1/CRC_PDO_QRY.xsd" />
+				<arg value="../${i2b2xmlproject}/xsd/hive/msg_1.1/i2b2_response.xsd" />
+				<arg value="../${i2b2xmlproject}/xsd/hive/msg_1.1/i2b2_result_msg.xsd" />
+				<arg value="../${i2b2xmlproject}/xsd/cell/crc/psm_1.1/CRC_PSM_QRY.xsd" />
+				<arg value="../${i2b2xmlproject}/xsd/cell/crc/psm_1.1/CRC_PSM_QRY_query_definition.xsd" />
+				<arg value="../${i2b2xmlproject}/xsd/cell/crc/psm_1.1/CRC_PSM_QRY_analysis_definition.xsd" />
+				<arg value="../${i2b2xmlproject}/xsd/cell/im/IM_QRY.xsd" />
+				<arg value="../${i2b2xmlproject}/xsd/cell/im/IM_RESP.xsd" />
+				<arg value="../${i2b2xmlproject}/xsd/cell/pm_1.1/PM_USER.xsd" />				
+				
+					        <arg value="-b"/>
+					        <arg value="./etc/xsd/i2b2_response.xjb"/>
+					        <arg value="-b"/>
+						        <arg value="./etc/xsd/i2b2_pm_bindings.xjb"/>
+						        <arg value="-b"/>
+				<arg value="./etc/xsd/crc_psm_qry.xjb"/>
+					        <arg value="-b"/>
+					        <arg value="./etc/xsd/crc_psm_analysisdefinition.xjb"/>
+		        <arg value="-b"/>
+		        <arg value="./etc/xsd/crc_psm_querydefinition.xjb"/>
+		        <arg value="-b"/>
+		        <arg value="./etc/xsd/crc_hive_result.xjb"/>
+		        <arg value="-b"/>
+		        <arg value="./etc/xsd/i2b2_pdo.xjb"/>
+			        <arg value="-b"/>
+			        <arg value="./etc/xsd/crc_pdo_qry.xjb"/>
+			        <arg value="-b"/>
+			        <arg value="./etc/xsd/i2b2_wdo_bindings.xjb"/>
+				</exec>
+
 		</target>
 
 	<!-- =================================================================== -->
@@ -94,7 +99,7 @@
 		<echo message="${Name}: Creating the archive package!" />
 		<antcall target="axis2aar" />
 		<antcall target="jar_core" />
-		<antcall target="dist-server" />
+<!--		<antcall target="dist-server" /> -->
 	</target>
 	
 	<!-- Axis2 archive file -->
@@ -161,13 +166,14 @@
 			<!--	<exclude name="**/jboss.xml" /> -->
 			</fileset>
 		</copy>
-			
+			<!--
 			<echo message="copying property files to ${edu.harvard.i2b2.im.applicationdir}"/>
 			<copy todir="${edu.harvard.i2b2.im.applicationdir}">
 				<fileset dir="${etc}/spring">
 					<exclude name="im_application_directory.properties" />
 				</fileset>
 			</copy>
+			-->
 		</target>
 
 	<!-- =================================================================== -->
@@ -201,6 +207,7 @@
 			<formatter type="xml" />
 			<jvmarg value="-Dtestfiledir=${testfiledir}" />
 			<jvmarg value="-Djava.endorsed.dirs=endorsed_lib" />
+			<jvmarg value="-Dtesthost=${testhost}" />
 			<!--<test name="AllTests" todir="${report.dir}"/>-->
 			<batchtest fork="yes" todir="${reports.dir}">
 				<fileset dir="test">

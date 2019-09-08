@@ -31,17 +31,16 @@ import edu.harvard.i2b2.ontology.util.OntologyJAXBUtil;
 public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 	private static String testFileDir = "";
 
-	private static String ontologyTargetEPR = 
-			"http://localhost:9090/i2b2/services/OntologyService/getSchemes";			
+	private static String ontologyTargetEPR = null;	
 	//	"http://127.0.0.1:8080/i2b2/services/PMService/getServices";			
 
 	//swc20160722 added following DBlookup related
-	private static String ontTargetEPR = "http://localhost:9090/i2b2/services/OntologyService/";
-	private static String getNameInfoEPR = ontTargetEPR + "getNameInfo";
-	private static String getAllDBlookups = ontTargetEPR + "getAllDblookups";
-	private static String setDBlookup = ontTargetEPR + "setDblookup";
-	private static String getDBlookup = ontTargetEPR + "getDblookup";
-	private static String deleteDBlookup = ontTargetEPR + "deleteDblookup";
+	private static String ontTargetEPR = null;
+	private static String getNameInfoEPR = null;
+	private static String getAllDBlookups = null;
+	private static String setDBlookup = null;
+	private static String getDBlookup = null;
+	private static String deleteDBlookup = null;
 	private static String ontMsg;
 
 	public static junit.framework.Test suite() { 
@@ -93,9 +92,21 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 		sb.append("</ns3:request>\n");
 		ontMsg = sb.toString();
 	}
-	
+
 	@BeforeClass
 	public static void setUp() throws Exception {
+
+		String host = (System.getProperty("testhost") == null ? "http://127.0.0.1:9090/i2b2/services" : System.getProperty("testhost") ) ;
+		ontologyTargetEPR = 
+				host + "/OntologyService/getSchemes";	
+		ontTargetEPR = 
+				host + "/OntologyService/";	
+
+		getNameInfoEPR = ontTargetEPR + "getNameInfo";
+		getAllDBlookups = ontTargetEPR + "getAllDblookups";
+		setDBlookup = ontTargetEPR + "setDblookup";
+		getDBlookup = ontTargetEPR + "getDblookup";
+		deleteDBlookup = ontTargetEPR + "deleteDblookup";
 		testFileDir = "test"; //System.getProperty("testfiledir");
 		//if (!java.nio.file.Files.exists(java.nio.file.Paths.get(testFileDir))) {
 		//	throw new Exception("testFileDir '" + testFileDir + "' non-existent!");
@@ -105,7 +116,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			throw new Exception(
 					"please provide test file directory info -Dtestfiledir");
 		}
-		
+
 		setMsgSkeleton(); //swc20160725 added
 	}
 
@@ -132,7 +143,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 
 	@Test
 	public void GetCategories() throws Exception {
@@ -157,7 +168,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 	@Test
 	public void GetNameInfoUnknown() throws Exception {
 		String filename = testFileDir + "/GetNameInfoUnknown.xml";
@@ -179,7 +190,54 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
+
+	@Test
+	public void GetNameInfo() throws Exception {
+		String filename = testFileDir + "/nameinfo.xml";
+		String masterInstanceResult = null;
+		try { 
+			String requestString = getQueryString(filename);
+			OMElement requestElement = convertStringToOMElement(requestString); 
+			OMElement responseElement = getServiceClient(ontTargetEPR+"getNameInfo").sendReceive(requestElement);
+			JAXBElement responseJaxb = OntologyJAXBUtil.getJAXBUtil().unMashallFromString(responseElement.toString());
+			ResponseMessageType r = (ResponseMessageType)responseJaxb.getValue();
+			JAXBUnWrapHelper helper = new  JAXBUnWrapHelper();
+
+			ConceptsType folders = (ConceptsType)helper.getObjectByClass(r.getMessageBody().getAny(),ConceptsType.class);
+			assertNotNull(folders);
+			assertTrue(folders.getConcept().size() > 30);
+
+		} catch (Exception e) { 
+			e.printStackTrace();
+			assertTrue(false);
+		}
+	}
+
+	@Test
+	public void GetNameInfo_reduced() throws Exception {
+		String filename = testFileDir + "/nameinfo.xml";
+		String masterInstanceResult = null;
+		try { 
+			String requestString = getQueryString(filename).replace("<ns4:get_name_info blob=\"true\"", 
+					"<ns4:get_name_info blob=\"true\" reducedResults=\"true\" ");
+			OMElement requestElement = convertStringToOMElement(requestString); 
+			OMElement responseElement = getServiceClient(ontTargetEPR+"getNameInfo").sendReceive(requestElement);
+			JAXBElement responseJaxb = OntologyJAXBUtil.getJAXBUtil().unMashallFromString(responseElement.toString());
+			ResponseMessageType r = (ResponseMessageType)responseJaxb.getValue();
+			JAXBUnWrapHelper helper = new  JAXBUnWrapHelper();
+
+			ConceptsType folders = (ConceptsType)helper.getObjectByClass(r.getMessageBody().getAny(),ConceptsType.class);
+			assertNotNull(folders);
+			assertTrue(folders.getConcept().size() > 3);
+			assertTrue(folders.getConcept().size() < 10);
+
+		} catch (Exception e) { 
+			e.printStackTrace();
+			assertTrue(false);
+		}
+	}
+
 
 	@Test
 	public void GetAllDBlookups_admin() throws Exception { //swc20160722
@@ -196,7 +254,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 	@Test
 	public void GetAllDBlookups_non_admin() throws Exception { //swc20160722
 		String requestString = ontMsg.replace("{{$USER$}}", "demo").replace("{{$PAYLOAD$}}", "<ns4:get_all_dblookups type='default'/>");
@@ -228,7 +286,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 		sb.append("        </ns4:set_dblookup>");
 		return sb.toString();
 	}
-	
+
 	@Test
 	public void SetDBlookup_admin() throws Exception { //swc20160722
 		String requestString = ontMsg.replace("{{$USER$}}", "i2b2").replace("{{$PAYLOAD$}}", GetDBlookupPayload());
@@ -245,7 +303,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 	@Test
 	public void SetDBlookup_non_admin() throws Exception { //swc20160722
 		String requestString = ontMsg.replace("{{$USER$}}", "demo").replace("{{$PAYLOAD$}}", GetDBlookupPayload());
@@ -261,7 +319,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 	@Test
 	public void GetDBlookup_admin() throws Exception { //swc20160722
 		String requestString = ontMsg.replace("{{$USER$}}", "i2b2").replace("{{$PAYLOAD$}}", "<ns4:get_dblookup value='test20160721'/>");
@@ -277,7 +335,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 	@Test
 	public void GetDBlookup_schema_admin() throws Exception { //swc20160722
 		String requestString = ontMsg.replace("{{$USER$}}", "i2b2").replace("{{$PAYLOAD$}}", "<ns4:get_dblookup field='db_fullschema' value='i2b2metadata'/>");
@@ -293,7 +351,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 	@Test
 	public void GetDBlookup_non_admin() throws Exception { //swc20160722
 		String requestString = ontMsg.replace("{{$USER$}}", "demo").replace("{{$PAYLOAD$}}", "<ns4:get_dblookup value='test20160721'/>");
@@ -309,7 +367,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 	@Test
 	public void DeleteDBlookup_admin() throws Exception { //swc20160722
 		String requestString = ontMsg.replace("{{$USER$}}", "i2b2").replace("{{$PAYLOAD$}}", "<ns4:delete_dblookup project_path='test20160721' domain_id='i2b2demo' owner_id='@'/>");
@@ -325,7 +383,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 	@Test
 	public void DeleteDBlookup_non_admin() throws Exception { //swc20160722
 		String requestString = ontMsg.replace("{{$USER$}}", "demo").replace("{{$PAYLOAD$}}", "<ns4:delete_dblookup project_path='test20160721' domain_id='i2b2demo' owner_id='@'/>");
@@ -341,7 +399,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 	@Test
 	public void DeleteDBlookup_nonexist_admin() throws Exception { //swc20160722
 		String requestString = ontMsg.replace("{{$USER$}}", "i2b2").replace("{{$PAYLOAD$}}", "<ns4:delete_dblookup project_path='bogus' domain_id='i2b2demo' owner_id='@'/>");
@@ -358,7 +416,7 @@ public class OntologyServiceRESTTest extends OntologyAxisAbstract{
 			assertTrue(false);
 		}
 	}
-	
+
 	@Test
 	public void DeleteDBlookup_missingAttrib_admin() throws Exception { //swc20160722
 		String requestString = ontMsg.replace("{{$USER$}}", "i2b2").replace("{{$PAYLOAD$}}", "<ns4:delete_dblookup project_path='test20160721' owner_id='@'/>");

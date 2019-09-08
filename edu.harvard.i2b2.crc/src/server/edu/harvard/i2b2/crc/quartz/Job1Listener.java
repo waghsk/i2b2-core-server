@@ -1,11 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2006-2018 Massachusetts General Hospital 
- * All rights reserved. This program and the accompanying materials 
- * are made available under the terms of the Mozilla Public License,
- * v. 2.0. If a copy of the MPL was not distributed with this file, You can
- * obtain one at http://mozilla.org/MPL/2.0/. I2b2 is also distributed under
- * the terms of the Healthcare Disclaimer.
- ******************************************************************************/
 /* 
  * Copyright 2005 OpenSymphony 
  * 
@@ -47,25 +39,22 @@ public class Job1Listener implements JobListener {
 
 	private static Log _log = LogFactory.getLog(Job1Listener.class);
 
-	@Override
 	public String getName() {
 		return "job1_to_job2";
 	}
 
-	@Override
 	public void jobToBeExecuted(JobExecutionContext inContext) {
 		_log.info("Job1Listener says: Job Is about to be executed.");
 	}
 
-	@Override
 	public void jobExecutionVetoed(JobExecutionContext inContext) {
 		_log.info("Job1Listener says: Job Execution was vetoed.");
 	}
 
-	@Override
 	public void jobWasExecuted(JobExecutionContext inContext,
 			JobExecutionException inException) {
 		_log.info("Job1Listener says: Job was executed.");
+		/*
 
 		// Simple job #2
 		JobDetail job2 = new JobDetail("job2", Scheduler.DEFAULT_GROUP,
@@ -79,10 +68,11 @@ public class Job1Listener implements JobListener {
 			// schedule the job to run!
 			inContext.getScheduler().scheduleJob(job2, trigger);
 		} catch (SchedulerException e) {
-			_log.warn("Unable to schedule job2!");
-			e.printStackTrace();
+			//_log.warn("Unable to schedule job2!");
+			//e.printStackTrace();
+			_log.warn(" ** quartz.Job1Listener.jobWasExecuted PROBLEM: Unable to schedule job2! ", e); //log printStackTrace instead
 		}
-
+*/
 	}
 
 }

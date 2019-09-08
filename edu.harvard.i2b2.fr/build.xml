@@ -38,14 +38,20 @@
 	<!-- 								COMMON JAXB GENERATION 				 -->
 	<!-- =================================================================== -->
 	<target name="jaxb_gen" depends="init" description="Generate JAXB classes for i2b2 and Vocab Data messages">
-				<xjc destdir="${gensrc}" removeOldOutput="no">
-					<schema dir="../${i2b2xmlproject}/xsd/cell/fr_1.0" includes="FR_QRY.xsd" />
-					<schema dir="../${i2b2xmlproject}/xsd/hive/msg_1.1" includes="i2b2_response.xsd" />
-					<schema dir="../${i2b2xmlproject}/xsd/cell/pm_1.1" includes="PM_USER.xsd" />
-					<binding dir="." includes="etc/xsd/fr_qry.xjb" />
-					<binding dir="." includes="etc/xsd/i2b2_response.xjb" />
-					<binding dir="." includes="etc/xsd/i2b2_pm_bindings.xjb" />
-				</xjc>
+		<exec executable="xjc">
+								        <arg value="-d"/>
+								        <arg value="${gensrc}"/>		
+		<arg value="../${i2b2xmlproject}/xsd/cell/fr_1.0/FR_QRY.xsd" />
+		<arg value="../${i2b2xmlproject}/xsd/hive/msg_1.1/i2b2_response.xsd" />				
+		<arg value="../${i2b2xmlproject}/xsd/cell/pm_1.1/PM_USER.xsd" />				
+		
+			        <arg value="-b"/>
+			        <arg value="./etc/xsd/i2b2_response.xjb"/>
+			        <arg value="-b"/>
+				        <arg value="./etc/xsd/i2b2_pm_bindings.xjb"/>
+				        <arg value="-b"/>
+		<arg value="./etc/xsd/fr_qry.xjb"/>
+		</exec>
 		</target>
 
 	<!-- =================================================================== -->
@@ -70,7 +76,7 @@
 		<echo message="${Name}: Creating the archive package!" />
 		<antcall target="axis2aar" />
 		<antcall target="jar_core" />
-		<antcall target="dist-server" />
+<!--		<antcall target="dist-server" /> -->
 	</target>
 	
 	<!-- Axis2 archive file -->
@@ -131,13 +137,14 @@
 				<include name="**/**.aar" />
 			</fileset>
 		</copy>
-			
+			<!--
 			<echo message="copying property files to ${edu.harvard.i2b2.fr.applicationdir}"/>
 			<copy todir="${edu.harvard.i2b2.fr.applicationdir}">
 				<fileset dir="${etc}/spring">
 					<exclude name="fr_application_directory.properties" />
 				</fileset>
 			</copy>
+			-->
 		</target>
 
 	<!-- =================================================================== -->
@@ -170,6 +177,7 @@
 		<junit fork="yes" haltonfailure="no" maxmemory="512M" printsummary="on" errorProperty="test.failed" failureProperty="test.failed" showoutput="false">
 			<formatter type="xml" />
 			<jvmarg value="-Dtestfiledir=${testfiledir}" />
+			<jvmarg value="-Dtesthost=${testhost}" />
 			<jvmarg value="-Djava.endorsed.dirs=endorsed_lib" />
 			<!--<test name="AllTests" todir="${report.dir}"/>-->
 			<batchtest fork="yes" todir="${reports.dir}">

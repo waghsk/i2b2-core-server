@@ -16,6 +16,10 @@
 package edu.harvard.i2b2.workplace.util;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
 import java.util.Properties;
 
 import javax.sql.DataSource;
@@ -26,10 +30,16 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.config.PropertiesFactoryBean;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
+import edu.harvard.i2b2.common.exception.I2B2DAOException;
 import edu.harvard.i2b2.common.exception.I2B2Exception;
 import edu.harvard.i2b2.common.util.ServiceLocator;
-
+import edu.harvard.i2b2.common.util.axis2.ServiceClient;
+import edu.harvard.i2b2.common.util.jaxb.DTOFactory;
+import edu.harvard.i2b2.workplace.datavo.pm.ParamType;
 
 /**
  * This is the Workplace service's main utility class
@@ -41,22 +51,22 @@ import edu.harvard.i2b2.common.util.ServiceLocator;
  */
 public class WorkplaceUtil {
     /** property file name which holds application directory name **/
-    public static final String APPLICATION_DIRECTORY_PROPERTIES_FILENAME = "workplace_application_directory.properties";
+ //   public static final String APPLICATION_DIRECTORY_PROPERTIES_FILENAME = "workplace_application_directory.properties";
 
     /** application directory property name **/
-    public static final String APPLICATIONDIR_PROPERTIES = "edu.harvard.i2b2.workplace.applicationdir";
+ //   public static final String APPLICATIONDIR_PROPERTIES = "edu.harvard.i2b2.workplace.applicationdir";
 
     /** application property filename**/
-    public static final String APPLICATION_PROPERTIES_FILENAME = "workplace.properties";
+ //   public static final String APPLICATION_PROPERTIES_FILENAME = "workplace.properties";
 
     /** property name for datasource present in app property file**/
-    private static final String DATASOURCE_JNDI_PROPERTIES = "workplace.jndi.datasource_name";
+//   private static final String DATASOURCE_JNDI_PROPERTIES = "workplace.jndi.datasource_name";
 
     /** property name for metadata schema name**/
-    private static final String METADATA_SCHEMA_NAME_PROPERTIES = "workplace.bootstrapdb.metadataschema";
+ //   private static final String METADATA_SCHEMA_NAME_PROPERTIES = "workplace.bootstrapdb.metadataschema";
 
     /** spring bean name for datasource **/
-    private static final String DATASOURCE_BEAN_NAME = "dataSource";
+ //   private static final String DATASOURCE_BEAN_NAME = "dataSource";
 
     /** property name for PM endpoint reference **/
     private static final String PM_WS_EPR = "workplace.ws.pm.url";
@@ -67,13 +77,13 @@ public class WorkplaceUtil {
     private static final String PM_WS_METHOD = "workplace.ws.pm.webServiceMethod";
 
     /** property name for PM bypass **/
-    private static final String PM_BYPASS = "workplace.ws.pm.bypass";
+//    private static final String PM_BYPASS = "workplace.ws.pm.bypass";
 
     /** property name for PM bypass project **/
-    private static final String PM_BYPASS_PROJECT = "workplace.ws.pm.bypass.project";
+//    private static final String PM_BYPASS_PROJECT = "workplace.ws.pm.bypass.project";
 
     /** property name for PM bypass role **/
-    private static final String PM_BYPASS_ROLE = "workplace.ws.pm.bypass.role";
+//    private static final String PM_BYPASS_ROLE = "workplace.ws.pm.bypass.role";
 
     /** class instance field**/
     private static WorkplaceUtil thisInstance = null;
@@ -82,8 +92,8 @@ public class WorkplaceUtil {
     private static ServiceLocator serviceLocator = null;
 
     /** field to store application properties **/
-    private static Properties appProperties = null;
-
+    private static List<ParamType> appProperties = null;
+    
     /** log **/
     protected final Log log = LogFactory.getLog(getClass());
 
@@ -117,6 +127,7 @@ public class WorkplaceUtil {
      * Return the ontology spring config
      * @return
      */
+    /*
     public BeanFactory getSpringBeanFactory() {
         if (beanFactory == null) {
             String appDir = null;
@@ -147,15 +158,15 @@ public class WorkplaceUtil {
 
         return beanFactory;
     }
-
+*/
     /**
      * Return metadata schema name
      * @return
      * @throws I2B2Exception
      */
-    public String getMetaDataSchemaName() throws I2B2Exception {
-        return getPropertyValue(METADATA_SCHEMA_NAME_PROPERTIES).trim()+ ".";
-    }
+ //   public String getMetaDataSchemaName() throws I2B2Exception {
+ //       return getPropertyValue(METADATA_SCHEMA_NAME_PROPERTIES).trim()+ ".";
+ //   }
 
     /**
      * Return PM cell endpoint reference URL
@@ -176,43 +187,7 @@ public class WorkplaceUtil {
         return CRC_WS_EPR;
     }
 
-    /**
-     * Return PM cell web service method
-     * @return
-     * @throws I2B2Exception
-     */
-    public String getPmWebServiceMethod() throws I2B2Exception {
-        return getPropertyValue(PM_WS_METHOD).trim();
-    }
-    
-    /**
-     * Return PM bypass flag
-     * @return
-     * @throws I2B2Exception
-     */
-    public Boolean isPmBypass() throws I2B2Exception {
-        return Boolean.valueOf(getPropertyValue(PM_BYPASS).trim());
-    }
 
-    /**
-     * Return PM bypass project name
-     * @return
-     * @throws I2B2Exception
-     */
-    public String getPmBypassProject() throws I2B2Exception {
-        return getPropertyValue(PM_BYPASS_PROJECT).trim();
-    }
-
-    /**
-     * Return PM bypass role assignment
-     * @return
-     * @throws I2B2Exception
-     */
-    public String getPmBypassRole() throws I2B2Exception {
-        return getPropertyValue(PM_BYPASS_ROLE).trim();
-    }
-
-    
     /**
      * Return app server datasource
      * @return datasource
@@ -229,11 +204,74 @@ public class WorkplaceUtil {
     // private methods here
     //---------------------
 
+
     /**
      * Load application property file into memory
      */
     private String getPropertyValue(String propertyName)
         throws I2B2Exception {
+    	
+    	
+    	if (appProperties == null) {
+
+
+
+			//		log.info(sql + domainId + projectId + ownerId);
+			//	List<ParamType> queryResult = null;
+			try {
+				DataSource   ds = this.getDataSource("java:/WorkplaceBootStrapDS");
+
+				JdbcTemplate jt = new JdbcTemplate(ds);
+				Connection conn = ds.getConnection();
+				
+				String metadataSchema = conn.getSchema();
+				conn.close();
+				String sql =  "select * from " + metadataSchema + ".hive_cell_params where status_cd <> 'D' and cell_id = 'WORK'";
+
+				log.debug("Start query");
+				appProperties =  jt.query(sql, new getHiveCellParam());
+				log.debug("End query");
+
+
+			} catch (DataAccessException e) {
+				log.error(e.getMessage());
+				e.printStackTrace();
+				throw new I2B2DAOException("Database error");
+			}
+			//return queryResult;	
+			catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+    	}
+    	
+    	String propertyValue = null;//appProperties.getProperty(propertyName);
+		for (int i=0; i < appProperties.size(); i++)
+		{
+			if (appProperties.get(i).getName() != null)
+			{
+				if (appProperties.get(i).getDatatype().equalsIgnoreCase("U"))
+					try {
+						 propertyValue = ServiceClient.getContextRoot() + appProperties.get(i).getValue();
+
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				else 
+					propertyValue = appProperties.get(i).getValue();
+			}
+		}
+
+		if ((propertyValue == null) || (propertyValue.trim().length() == 0)) {
+			throw new I2B2Exception("Application property file("
+					//	+ APPLICATION_PROPERTIES_FILENAME + ") missing "
+					+ propertyName + " entry");
+		}
+
+		return propertyValue;
+    	/*
         if (appProperties == null) {
             //read application directory property file
             Properties loadProperties = ServiceLocator.getProperties(APPLICATION_DIRECTORY_PROPERTIES_FILENAME);
@@ -285,5 +323,20 @@ public class WorkplaceUtil {
         }
 
         return propertyValue;
+        */
     }
+}
+
+
+class getHiveCellParam implements RowMapper<ParamType> {
+	@Override
+	public ParamType mapRow(ResultSet rs, int rowNum) throws SQLException {
+
+			ParamType param = new ParamType();
+			param.setId(rs.getInt("id"));
+			param.setName(rs.getString("param_name_cd"));
+			param.setValue(rs.getString("value"));
+			param.setDatatype(rs.getString("datatype_cd"));
+			return param;
+		} 
 }

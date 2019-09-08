@@ -20,22 +20,24 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.sql.DataSource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.support.JdbcDaoSupport;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-
-
+import antlr.StringUtils;
 import edu.harvard.i2b2.common.exception.I2B2DAOException;
 import edu.harvard.i2b2.common.exception.I2B2Exception;
 import edu.harvard.i2b2.common.util.db.JDBCUtil;
@@ -82,7 +84,7 @@ public class ConceptDao extends JdbcDaoSupport {
 
 	final static String NAME_DEFAULT = " c_name ";
 
-	private SimpleJdbcTemplate jt;
+	private JdbcTemplate jt;
 
 	private void setDataSource(String dataSource) {
 		DataSource ds = null;
@@ -91,7 +93,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		} catch (I2B2Exception e2) {
 			log.error(e2.getMessage());;
 		} 
-		this.jt = new SimpleJdbcTemplate(ds);
+		this.jt = new  JdbcTemplate(ds);
 
 	}
 
@@ -142,109 +144,10 @@ public class ConceptDao extends JdbcDaoSupport {
 
 		final boolean obfuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
 
-		ParameterizedRowMapper<ConceptType> mapper = new ParameterizedRowMapper<ConceptType>() {
-
-			public ConceptType mapRow(ResultSet rs, int rowNum) throws SQLException {
-				ConceptType child = new ConceptType();
-				//TODO fix this for all
-				child.setKey("\\\\" + rs.getString("c_table_cd")+ rs.getString("c_fullname")); 
-				child.setName(rs.getString("c_name"));
-				if(returnType.getType().equals("limited")) {
-					child.setBasecode(rs.getString("c_basecode"));
-					child.setLevel(rs.getInt("c_hlevel"));
-					child.setSynonymCd(rs.getString("c_synonym_cd"));
-					child.setVisualattributes(rs.getString("c_visualattributes"));
-
-					child.setTooltip(rs.getString("c_tooltip"));
-					child.setValuetypeCd(rs.getString("valuetype_cd"));
-					child.setProtectedAccess(rs.getString("c_protected_access"));
-					child.setOntologyProtection(rs.getString("c_ontology_protection"));
-
-				}
-				else if(returnType.getType().equals("core")) {
-					child.setBasecode(rs.getString("c_basecode"));
-					child.setLevel(rs.getInt("c_hlevel"));
-					child.setSynonymCd(rs.getString("c_synonym_cd"));
-					child.setVisualattributes(rs.getString("c_visualattributes"));
-					child.setProtectedAccess(rs.getString("c_protected_access"));
-					child.setOntologyProtection(rs.getString("c_ontology_protection"));
-
-					Integer totalNum = rs.getInt("c_totalnum");
-					boolean nullFlag = rs.wasNull();
-
-
-					if (nullFlag) { 
-						log.debug("null in totalnum flag ");
-					} else { 
-						log.debug("not null in totalnum flag ");
-					}
-
-					if (rs.getString("c_totalnum") == null) { 
-						log.debug("null in totalnum flag using getString method");
-					} else { 
-						log.debug("not null in totalnum flag using getString method  [" + rs.getString("c_totalnum") + "]");
-					}
-
-					if (obfuscatedUserFlag == false && nullFlag == false) {
-						child.setTotalnum(totalNum);
-					} 
-
-
-					child.setFacttablecolumn(rs.getString("c_facttablecolumn" ));
-					child.setTablename(rs.getString("c_dimtablename")); 
-					child.setColumnname(rs.getString("c_columnname")); 
-					child.setColumndatatype(rs.getString("c_columndatatype")); 
-					child.setOperator(rs.getString("c_operator")); 
-					child.setDimcode(rs.getString("c_dimcode")); 
-					child.setTooltip(rs.getString("c_tooltip"));
-					child.setValuetypeCd(rs.getString("valuetype_cd"));
-				}
-				if (child.getProtectedAccess().equalsIgnoreCase("Y"))
-				{
-					Boolean protectedAccess = false;
-					String[] dataProt = {"DATA_PROT"};
-					List<String> ontologyProtection = Arrays.asList(child.getOntologyProtection() == null || child.getOntologyProtection().equals("")?dataProt:child.getOntologyProtection().split(","));
-					for (String s: projectInfo.getRole()) {
-						if (ontologyProtection.contains(s))
-							protectedAccess = true;
-						
-					}
-					if (protectedAccess == false)
-						child = null;
-				}
-
-				return child;
-			}
-		};
-
 
 		List queryResult = null;
 
 
-		/*
-		if (!protectedAccess){
-			String categoriesSql = "select c_table_cd, " + parameters + " from " +  metadataSchema +  "table_access where c_protected_access = ? ";
-
-			String hidden = "";
-			if(returnType.isHiddens() == false)
-				hidden = " and c_visualattributes not like '_H%'";
-
-			String synonym = "";
-			if(returnType.isSynonyms() == false)
-				synonym = " and c_synonym_cd = 'N'";
-
-			categoriesSql = categoriesSql + hidden + synonym + "order by upper(c_name)";
-
-			log.debug(categoriesSql);
-			try {
-				queryResult = jt.query(categoriesSql, mapper, "N");
-			} catch (DataAccessException e) {
-				log.error(e.getMessage());
-				throw new I2B2DAOException("Database error");
-			}
-		}
-		else{
-		 */
 		String categoriesSql = "select c_table_cd, " + parameters + " from " +  metadataSchema +  "table_access ";
 
 		String hidden = "";
@@ -266,7 +169,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		log.debug(categoriesSql);
 
 		try {
-			queryResult = jt.query(categoriesSql, mapper);
+			queryResult = jt.query(categoriesSql, getConceptFullNameMapper(returnType, projectInfo, obfuscatedUserFlag));
 		} catch (DataAccessException e) {
 			log.error("Get Categories " +e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -279,73 +182,10 @@ public class ConceptDao extends JdbcDaoSupport {
 			while (itr.hasNext()){
 				ConceptType child = (ConceptType) itr.next();
 				String clobSql = "select c_metadataxml, c_comment from "+  metadataSchema +  "table_access where c_table_cd = ?";
-				ParameterizedRowMapper<ConceptType> map = new ParameterizedRowMapper<ConceptType>() {
-					public ConceptType mapRow(ResultSet rs, int rowNum) throws SQLException {
-						ConceptType concept = new ConceptType();
-						//			        	ResultSetMetaData rsmd = rs.getMetaData();
-						//			        	rsmd.get
 
-						String c_xml = null;
-						try {
-
-							if (dbInfo.getDb_serverType().equals("POSTGRESQL"))
-								c_xml = rs.getString("c_metadataxml");
-							else  if (rs.getClob("c_metadataxml") != null)
-								c_xml = JDBCUtil.getClobString(rs.getClob("c_metadataxml"));
-						} catch (IOException e) {
-							log.error(e.getMessage());
-							concept.setMetadataxml(null);
-						}
-
-						if(c_xml == null){
-							concept.setMetadataxml(null);
-						}else {
-
-							if ((c_xml!=null)&&(c_xml.trim().length()>0)&&(!c_xml.equals("(null)")))
-							{
-								//SAXBuilder parser = new SAXBuilder();
-								java.io.StringReader xmlStringReader = new java.io.StringReader(c_xml);
-								Element rootElement = null;
-								try {
-									Document doc = XMLUtil.loadXMLFrom(new java.io.ByteArrayInputStream(c_xml.getBytes()));
-									rootElement = doc.getDocumentElement();
-								} catch (IOException e) {
-									log.error(e.getMessage());
-									concept.setMetadataxml(null);
-								} catch (Exception e) {
-									log.error(e.getMessage());
-									concept.setMetadataxml(null);
-								}
-								if(rootElement != null) {
-									XmlValueType xml = new XmlValueType();									
-									xml.getAny().add(rootElement);								
-									concept.setMetadataxml(xml);
-								}
-							}else {
-								concept.setMetadataxml(null);
-							}
-						}	
-
-						try {
-							if (dbInfo.getDb_serverType().equals("POSTGRESQL"))
-							{
-								concept.setComment(rs.getString("c_comment"));
-							} else  if (rs.getClob("c_comment") != null)
-							{
-								concept.setComment(JDBCUtil.getClobString(rs.getClob("c_comment")));
-							}
-						}
-						catch (Exception e)
-						{
-							concept.setComment(null);
-						}
-
-						return concept;
-					}
-				};
 				List clobResult = null;
 				try {
-					clobResult = jt.query(clobSql, map, StringUtil.getTableCd(child.getKey()));
+					clobResult = jt.query(clobSql, getConceptXMLMapper(dbInfo), StringUtil.getTableCd(child.getKey()));
 				} catch (DataAccessException e) {
 					log.error(e.getMessage());
 					throw new I2B2DAOException("Database Error");
@@ -363,6 +203,8 @@ public class ConceptDao extends JdbcDaoSupport {
 		}
 		return queryResult;
 	}
+
+
 
 	public List findChildrenByParent(final GetChildrenDataMessage childrenMsg, ProjectType projectInfo, DBInfoType dbInfo) throws I2B2DAOException, I2B2Exception, JAXBUtilException{
 
@@ -404,19 +246,14 @@ public class ConceptDao extends JdbcDaoSupport {
 			}
 		}
 		 */
-		ParameterizedRowMapper<String> map = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name = (rs.getString("c_table_name"));
-				return name;
-			}
-		};
+
 
 		//extract table code
 		String tableCd = StringUtil.getTableCd(childrenType.getParent());
 		String tableName=null;
 		String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access where c_table_cd = ?";
 		try {
-			tableName = jt.queryForObject(tableSql, map, tableCd);	    
+			tableName = jt.queryForObject(tableSql, String.class, tableCd);	    
 		} catch (DataAccessException e) {
 			log.error("Get Children " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -431,7 +268,7 @@ public class ConceptDao extends JdbcDaoSupport {
 
 		int level = 0;
 		try {
-			level = jt.queryForInt(levelSql, path);
+			level = jt.queryForObject(levelSql, Integer.class, path);
 		} catch (DataAccessException e1) {
 			// should only get 1 result back  (path == c_fullname which should be unique)
 			log.error("Get Children " + e1.getMessage());
@@ -451,7 +288,7 @@ public class ConceptDao extends JdbcDaoSupport {
 
 		//log.info(sql + " " + path + " " + level);
 		boolean obfuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
-		ParameterizedRowMapper<ConceptType> mapper = getMapper(new NodeType(childrenType),obfuscatedUserFlag, dbInfo.getDb_serverType());
+		//ParameterizedRowMapper<ConceptType> mapper = getMapper(new NodeType(childrenType),obfuscatedUserFlag, dbInfo.getDb_serverType());
 
 		if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
 			searchPath = StringUtil.escapeSQLSERVER(path);
@@ -470,7 +307,7 @@ public class ConceptDao extends JdbcDaoSupport {
 
 		List<ConceptType> queryResult = null;
 		try {
-			queryResult = jt.query(sql, mapper, searchPath, (level + 1) );
+			queryResult = jt.query(sql, getConceptNodeMapper(new NodeType(childrenType),obfuscatedUserFlag, dbInfo.getDb_serverType()), searchPath, (level + 1) );
 		} catch (Exception e) {
 			log.error("Get Children " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -515,7 +352,7 @@ public class ConceptDao extends JdbcDaoSupport {
 
 
 					try {
-						queryCount = jt.queryForInt(sqlCount);
+						queryCount = jt.queryForObject(sqlCount, Integer.class);
 					} catch (DataAccessException e) {
 						log.error("Get Children " + e.getMessage());
 						throw new I2B2DAOException("Database Error");
@@ -575,24 +412,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		boolean ofuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
 
 		//tableCd to table name conversion
-		ParameterizedRowMapper<String> map = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name = (rs.getString("c_table_name"));
-				return name;
-			}
-		};
-		ParameterizedRowMapper<String> map2 = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name = (rs.getString("c_protected_access"));
-				return name;
-			}
-		};
-		ParameterizedRowMapper<String> map3 = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name = (rs.getString("c_ontology_protection"));
-				return name;
-			}
-		};
+
 
 		String hidden = "";
 		if(termInfoType.isHiddens() == false)
@@ -605,21 +425,21 @@ public class ConceptDao extends JdbcDaoSupport {
 		String ontologyProtection = null;
 		String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access where c_table_cd = ?" + hidden;
 		try {
-			tableName = jt.queryForObject(tableSql, map, tableCd);	    
+			tableName = jt.queryForObject(tableSql, String.class, tableCd);	    
 		} catch (DataAccessException e) {
 			log.error("Get Term Info " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
 		}                            
 		tableSql = "select distinct(c_protected_access) from " + metadataSchema + "table_access where c_table_cd = ?" + hidden;
 		try {
-			protectedAccess = jt.queryForObject(tableSql, map2, tableCd);	    
+			protectedAccess = jt.queryForObject(tableSql, String.class, tableCd);	    
 		} catch (DataAccessException e) {
 			log.error("Get Term Info " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
 		}
 		tableSql = "select c_ontology_protection from " + metadataSchema + "table_access where c_table_cd = ?" + hidden;
 		try {
-			ontologyProtection = jt.queryForObject(tableSql, map3, tableCd);	    
+			ontologyProtection = jt.queryForObject(tableSql, String.class, tableCd);	    
 		} catch (DataAccessException e) {
 			log.error("Get Term Info " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -651,11 +471,11 @@ public class ConceptDao extends JdbcDaoSupport {
 
 		//log.info(sql + " " + path + " " + level);
 
-		ParameterizedRowMapper<ConceptType> mapper = getMapper(new NodeType(termInfoType), ofuscatedUserFlag, dbInfo.getDb_serverType());
+		//ParameterizedRowMapper<ConceptType> mapper = getMapper(new NodeType(termInfoType), ofuscatedUserFlag, dbInfo.getDb_serverType());
 
 		List queryResult = null;
 		try {
-			queryResult = jt.query(sql, mapper, searchPath );
+			queryResult = jt.query(sql, getConceptNodeMapper(new NodeType(termInfoType), ofuscatedUserFlag, dbInfo.getDb_serverType()), searchPath );
 		} catch (DataAccessException e) {
 			log.error("Get Term Info " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -704,27 +524,33 @@ public class ConceptDao extends JdbcDaoSupport {
 
 
 		//tableCd to table name + fullname conversion
-		ParameterizedRowMapper<ConceptType> map = new ParameterizedRowMapper<ConceptType>() {
-			public ConceptType mapRow(ResultSet rs, int rowNum) throws SQLException {
-				ConceptType category = new ConceptType();	 
 
-				category.setTablename(rs.getString("c_table_name"));
-				category.setKey(rs.getString("c_fullname"));
-				return category;
-			}
-		};
 
 
 		//extract table code
 		String tableCd = vocabType.getCategory();
 		List<ConceptType> categoryResult;
 
-		String tableSql = "select distinct(c_table_name), c_fullname from " + metadataSchema + "table_access where c_table_cd = ? " ;
-		try {
-			categoryResult = jt.query(tableSql, map, tableCd);	    
-		} catch (DataAccessException e) {
-			log.error("Search by Name " + e.getMessage());
-			throw new I2B2DAOException("Database Error");
+		List<ConceptType> queryResult = null;
+		if (tableCd.equals("@"))
+		{
+			String tableSql = "select distinct(c_table_name), c_fullname, c_name from " + metadataSchema + "table_access where c_visualattributes not like '_H%'" ;
+			try {
+				categoryResult = jt.query(tableSql, new GetConceptNameMapper());	    
+			} catch (DataAccessException e) {
+				log.error("Search by Name " + e.getMessage());
+				throw new I2B2DAOException("Database Error");
+			}
+
+
+		} else { 
+			String tableSql = "select distinct(c_table_name), c_fullname, c_name from " + metadataSchema + "table_access where c_table_cd = ? " ;
+			try {
+				categoryResult = jt.query(tableSql, new GetConceptNameMapper(), tableCd);	    
+			} catch (DataAccessException e) {
+				log.error("Search by Name " + e.getMessage());
+				throw new I2B2DAOException("Database Error");
+			}
 		}
 
 		String nameInfoSql = null;
@@ -739,69 +565,53 @@ public class ConceptDao extends JdbcDaoSupport {
 		if (categoryResult.size() == 0){
 			log.error("Non existent tableCd category passed in getNameInfo request " + tableCd);
 			return null;
-		}
-
-		String category = categoryResult.get(0).getKey();
-		if(category.contains("'")){
-			category = category.replaceAll("'", "''");
-		}
-
-		if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
-			category = StringUtil.escapeSQLSERVER(category);
-		}
-		else if(dbInfo.getDb_serverType().toUpperCase().equals("ORACLE")){
-			category = StringUtil.escapeORACLE(category);
-		}
-		else if(dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL")){
-			category = StringUtil.escapePOSTGRESQL(category); 
-		}		
+		} 
 
 
-		// dont do the sql injection replace; it breaks the service.
-		if(vocabType.getMatchStr().getStrategy().equals("exact")) {
-			nameInfoSql = "select " + parameters  + " from " + metadataSchema+categoryResult.get(0).getTablename() + " where upper(c_name) = ? and c_fullname like '" + category +	"%' " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" )	;  //{ESCAPE '?'}";    
-			compareName = value.toUpperCase();  	
-		}
 
-		else if(vocabType.getMatchStr().getStrategy().equals("left")){
-			nameInfoSql = "select " + parameters  + " from " + metadataSchema+categoryResult.get(0).getTablename() +" where upper(c_name) like ? " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + " and c_fullname like '" + category +"%' " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" )	;  //{ESCAPE '?'}";    
+		for (int i=0; i < categoryResult.size(); i++) {
+			String category = categoryResult.get(i).getKey();
+			if(category.contains("'")){
+				category = category.replaceAll("'", "''");
+			}
+
 			if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
-				compareName = StringUtil.escapeSQLSERVER(vocabType.getMatchStr().getValue().toUpperCase());
-				//compareName = compareName.replaceAll("\\[", "[[]");
+				category = StringUtil.escapeSQLSERVER(category);
 			}
 			else if(dbInfo.getDb_serverType().toUpperCase().equals("ORACLE")){
-				compareName = StringUtil.escapeORACLE(vocabType.getMatchStr().getValue().toUpperCase());
-				//compareName = compareName.replaceAll("\\[", "[[]");
+				category = StringUtil.escapeORACLE(category);
 			}
 			else if(dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL")){
-				compareName = StringUtil.escapePOSTGRESQL(vocabType.getMatchStr().getValue().toUpperCase());
-				//compareName = compareName.replaceAll("\\[", "[[]");
-			}
-			compareName = compareName + "%";
+				category = StringUtil.escapePOSTGRESQL(category); 
+			}		
 
-		}
 
-		else if(vocabType.getMatchStr().getStrategy().equals("right")) {
-			nameInfoSql = "select " + parameters  + " from " + metadataSchema+categoryResult.get(0).getTablename() +" where upper(c_name) like ? " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + " and c_fullname like '" + category +"%' " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" )	;  //{ESCAPE '?'}";     {ESCAPE '?'}";
-			if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
-				compareName = StringUtil.escapeSQLSERVER(vocabType.getMatchStr().getValue().toUpperCase());
-			}
-			else if(dbInfo.getDb_serverType().toUpperCase().equals("ORACLE")){
-				compareName = StringUtil.escapeORACLE(vocabType.getMatchStr().getValue().toUpperCase());
-			}
-			else if(dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL")){
-				compareName = StringUtil.escapePOSTGRESQL(vocabType.getMatchStr().getValue().toUpperCase());
+			// dont do the sql injection replace; it breaks the service.
+			if(vocabType.getMatchStr().getStrategy().equals("exact")) {
+				nameInfoSql = "select " + parameters  + " from " + metadataSchema+categoryResult.get(i).getTablename() + " where upper(c_name) = ? and c_fullname like '" + category +	"%' " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" )	;  //{ESCAPE '?'}";    
+				compareName = value.toUpperCase();  	
 			}
 
-			compareName =  "%" + compareName;
-			//   	if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
-			//		compareName = compareName.replaceAll("\\[", "[[]");
-			//	}
-		}
+			else if(vocabType.getMatchStr().getStrategy().equals("left")){
+				nameInfoSql = "select " + parameters  + " from " + metadataSchema+categoryResult.get(i).getTablename() +" where upper(c_name) like ? " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + " and c_fullname like '" + category +"%' " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" )	;  //{ESCAPE '?'}";    
+				if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
+					compareName = StringUtil.escapeSQLSERVER(vocabType.getMatchStr().getValue().toUpperCase());
+					//compareName = compareName.replaceAll("\\[", "[[]");
+				}
+				else if(dbInfo.getDb_serverType().toUpperCase().equals("ORACLE")){
+					compareName = StringUtil.escapeORACLE(vocabType.getMatchStr().getValue().toUpperCase());
+					//compareName = compareName.replaceAll("\\[", "[[]");
+				}
+				else if(dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL")){
+					compareName = StringUtil.escapePOSTGRESQL(vocabType.getMatchStr().getValue().toUpperCase());
+					//compareName = compareName.replaceAll("\\[", "[[]");
+				}
+				compareName = compareName + "%";
 
-		else if(vocabType.getMatchStr().getStrategy().equals("contains")) {
-			if(!(value.contains(" "))){
-				nameInfoSql = "select " + parameters  + " from " + metadataSchema+categoryResult.get(0).getTablename() +" where upper(c_name) like ? " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + "and c_fullname like '" + category +"%' " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + "";
+			}
+
+			else if(vocabType.getMatchStr().getStrategy().equals("right")) {
+				nameInfoSql = "select " + parameters  + " from " + metadataSchema+categoryResult.get(i).getTablename() +" where upper(c_name) like ? " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + " and c_fullname like '" + category +"%' " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" )	;  //{ESCAPE '?'}";     {ESCAPE '?'}";
 				if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
 					compareName = StringUtil.escapeSQLSERVER(vocabType.getMatchStr().getValue().toUpperCase());
 				}
@@ -811,60 +621,263 @@ public class ConceptDao extends JdbcDaoSupport {
 				else if(dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL")){
 					compareName = StringUtil.escapePOSTGRESQL(vocabType.getMatchStr().getValue().toUpperCase());
 				}
-				compareName =  "%" + compareName + "%";
-				//if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
+
+				compareName =  "%" + compareName;
+				//   	if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
 				//		compareName = compareName.replaceAll("\\[", "[[]");
 				//	}
-			}else{
-				nameInfoSql = "select " + parameters  + " from " + metadataSchema+categoryResult.get(0).getTablename();
-				if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
-					compareName = StringUtil.escapeSQLSERVER(vocabType.getMatchStr().getValue().toUpperCase());
-				}
-				else if(dbInfo.getDb_serverType().toUpperCase().equals("ORACLE")){
-					compareName = StringUtil.escapeORACLE(vocabType.getMatchStr().getValue().toUpperCase());
-				}
-				else if(dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL")){
-					compareName = StringUtil.escapePOSTGRESQL(vocabType.getMatchStr().getValue().toUpperCase());
-				}
+			}
 
-				//		if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
-				//			value = value.replaceAll("\\[", "[[]");
-				//		}
-				//	WAS
-				//		nameInfoSql = nameInfoSql + parseMatchString(value)+ " and c_fullname like '" + category +"%'" + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + "";;
-				nameInfoSql = nameInfoSql + parseMatchString(compareName, dbInfo)+ " and c_fullname like '" + category +"%' " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + " ";;
+			else if(vocabType.getMatchStr().getStrategy().equals("contains")) {
+				if(!(value.contains(" "))){
+					nameInfoSql = "select " + parameters  + " from " + metadataSchema+categoryResult.get(i).getTablename() +" where upper(c_name) like ? " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + " and c_fullname like '" + category +"%' " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + "";
+					if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
+						compareName = StringUtil.escapeSQLSERVER(vocabType.getMatchStr().getValue().toUpperCase());
+					}
+					else if(dbInfo.getDb_serverType().toUpperCase().equals("ORACLE")){
+						compareName = StringUtil.escapeORACLE(vocabType.getMatchStr().getValue().toUpperCase());
+					}
+					else if(dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL")){
+						compareName = StringUtil.escapePOSTGRESQL(vocabType.getMatchStr().getValue().toUpperCase());
+					}
+					compareName =  "%" + compareName + "%";
+					//if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
+					//		compareName = compareName.replaceAll("\\[", "[[]");
+					//	}
+				}else{
+					nameInfoSql = "select " + parameters  + " from " + metadataSchema+categoryResult.get(i).getTablename();
+					if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
+						compareName = StringUtil.escapeSQLSERVER(vocabType.getMatchStr().getValue().toUpperCase());
+					}
+					else if(dbInfo.getDb_serverType().toUpperCase().equals("ORACLE")){
+						compareName = StringUtil.escapeORACLE(vocabType.getMatchStr().getValue().toUpperCase());
+					}
+					else if(dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL")){
+						compareName = StringUtil.escapePOSTGRESQL(vocabType.getMatchStr().getValue().toUpperCase());
+					}
 
-				compareName = null;
+					//		if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
+					//			value = value.replaceAll("\\[", "[[]");
+					//		}
+					//	WAS
+					//		nameInfoSql = nameInfoSql + parseMatchString(value)+ " and c_fullname like '" + category +"%'" + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + "";;
+					nameInfoSql = nameInfoSql + parseMatchString((!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? compareName.replaceAll("'", "''") : compareName), dbInfo)+ " and c_fullname like '" + category +"%' " + (!dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL") ? "{ESCAPE '?'}" : "" ) + " ";;
+
+					compareName = null;
+				}
+			}
+
+
+			String hidden = "";// and c_totalnum != 0 ";
+			if(vocabType.isHiddens() == false)
+				hidden += " and c_visualattributes not like '_H%'";
+
+
+			String synonym = "";
+			if(vocabType.isSynonyms() == false)
+				synonym = " and c_synonym_cd = 'N'";
+
+			nameInfoSql = nameInfoSql + hidden + synonym + " order by c_hlevel, c_totalnum, upper(c_name) asc ";  
+
+			log.info(nameInfoSql + " " +compareName);
+			boolean obfuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
+			//ParameterizedRowMapper<ConceptType> mapper = getMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType());
+
+
+			try {
+				List<ConceptType> list = null;
+				if(compareName != null) {
+					list = jt.query(nameInfoSql, getConceptNodeMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType()), compareName);
+					//queryResult.addAll(list);
+				} else {
+					list = jt.query(nameInfoSql, getConceptNodeMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType()));
+					//queryResult.addAll(list);
+				}
+				
+				
+				// Add parent poaths
+				
+				String tableName=categoryResult.get(i).getTablename();
+				String name = categoryResult.get(i).getName();
+				/*
+				String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access where c_table_cd = ?";
+				try {
+					tableName = jt.queryForObject(tableSql, String.class, tableCd);	    
+				} catch (DataAccessException e) {
+					log.error("Get Children " + e.getMessage());
+					throw new I2B2DAOException("Database Error");
+				}
+				*/
+				
+				//jgk
+				// This does a linear search through fullnames for each previous fullname, O(n^2) :(
+				// BUT it assumes its sorted by hlevel so it only has to search through whats already seen - n(n+1)/2 operations 
+				if (list.size()>0 && vocabType.isReducedResults()!=null && vocabType.isReducedResults()) {
+					ArrayList<String> seen = new ArrayList<String>(); 
+					ArrayList<ConceptType> keep = new ArrayList<ConceptType>();
+					Iterator<ConceptType> it = list.iterator();
+					while (it.hasNext())
+					{
+						ConceptType node = (ConceptType)it.next();
+						String key = node.getKey();
+						boolean bAbort = false;
+						for (String k : seen) {
+							if(key.startsWith(k) && !key.equals(k) /* <-- don't kill the synonyms */ ) {
+								bAbort = true;
+								break;
+							}
+						}
+						if (!bAbort) { 
+							// Add nodes that were not subsumed to the keep list
+							keep.add(node);
+						}
+						// Hidden and inactive should not subsume other nodes - exclude them
+						if (node.getVisualattributes().contains("A")) 
+							seen.add(node.getKey());
+					}
+					log.debug("Reduced find terms from "+list.size()+" to "+keep.size());
+					list = keep;
+				}
+				
+				if (list.size() <= vocabType.getMax() && vocabType.isKeyname()!=null && vocabType.isKeyname() && list.size()<400 /* sanity check - no keyname lookup in case of v v large result */) {
+					// Only do keyname lookups if we haven't exceeded the max				
+					HashMap<String,String> KeynameCache = new HashMap<String,String>();
+					int skipCount = 0; // for debug, number of cache hits
+					//int skipPathCount = category.split("\\\\").length -2; // preamble elements in path, not to be output in key name (everything but final element in category path)
+					
+					// A little code to ignore a path in the category name, if there is more than one element.
+					// e.g., \\i2b2_MED\Medications\ will ignore i2b2_MED
+					String[] skipPaths = category.split("\\\\");
+					String skipPath = "";
+					for (int j=1;j<skipPaths.length-1;j++) skipPath=skipPath+"\\"+skipPaths[j];
+					skipPath=skipPath+"\\";
+					
+					String sql = "";
+					for (ConceptType cType: list) {
+						//String path = cType.getDimcode(); //StringUtil.getPath(childrenType.getParent());
+						String parentPath = StringUtil.getParentPath(cType.getKey().substring(tableCd.length()+2));
+											
+						if (KeynameCache.containsKey(parentPath)) {
+							cType.setKeyName(KeynameCache.get(parentPath));
+							skipCount++;
+						}
+						else {
+							if(dbInfo.getDb_serverType().toUpperCase().equals("SQLSERVER")){
+								sql = "WITH pathnames ";
+								sql += " AS";
+								sql += " (";
+								sql += "    select c_name, c_fullname,";
+								sql += "        substring(c_fullname, 1, len(c_fullname) - charindex('\\', reverse(c_fullname), 2) + 1) as c_path,";
+								sql += "        1 as c_pathorder";
+								sql += "    from " + metadataSchema+tableName  + " where c_fullname =  ? and c_synonym_cd='N'";
+								sql += "    UNION ALL";
+								sql += "    select m.c_name, m.c_fullname,  substring(m.c_fullname, 1, len(m.c_fullname) - charindex('\\', reverse(m.c_fullname), 2) + 1) as c_path, c_pathorder + 1 as c_pathorder";
+								sql += "    from " + metadataSchema+tableName  + "  m";
+								sql += "        inner join pathnames p on m.c_fullname = p.c_path where c_synonym_cd='N'";   
+								sql += " )";
+								sql += " SELECT distinct c_name, c_fullname, c_pathorder as c_hlevel";
+								sql += " FROM   pathnames";
+								sql += " order by c_pathorder desc ";
+		
+							}
+		
+							else if(dbInfo.getDb_serverType().toUpperCase().equals("ORACLE")){
+		
+		
+								sql = "WITH pathnames (c_name, c_fullname, c_path, c_pathorder) ";
+								sql += " AS ";
+								sql += " ( ";
+								sql += "   select c_name, c_fullname, ";
+								sql += "        substr(c_fullname, 1, length(c_fullname) - instr(reverse(c_fullname),'\\',  2) + 1) as c_path,";
+								sql += "       1 as c_pathorder";
+								sql += "    from " + metadataSchema+tableName  + "  where c_fullname =  ? and c_synonym_cd='N'";
+								sql += "   UNION ALL";
+								sql += "   select m.c_name, m.c_fullname,  substr(m.c_fullname, 1, length(m.c_fullname) - instr(reverse(m.c_fullname), '\\',  2) + 1) as c_path, c_pathorder + 1 as c_pathorder";
+								sql += "  from " + metadataSchema+tableName  + "   m";
+								sql += "       inner join pathnames p on m.c_fullname = p.c_path where c_synonym_cd='N'";
+		
+								sql += " )";
+								sql += " SELECT distinct c_name, c_fullname, c_pathorder as c_hlevel";
+								sql += " FROM   pathnames";
+								sql += " order by c_pathorder desc ";
+							} 		else if(dbInfo.getDb_serverType().toUpperCase().equals("POSTGRESQL")){
+		
+								sql  = "WITH RECURSIVE pathnames ";
+								sql += " AS";
+								sql += " (";
+								sql += "    select c_name, c_fullname,";
+								sql += "      substr(c_fullname, 1, length(c_fullname) - strpos(substr(reverse(c_fullname), 2), '\\') ) as c_path,";
+								sql += "      1 as c_pathorder";
+								sql += "    from " + metadataSchema+tableName  + "  where c_fullname =  ? and c_synonym_cd='N'";
+								sql += "    UNION ALL";
+								sql += "    select m.c_name, m.c_fullname,  ";
+								sql += "      substr(m.c_fullname, 1, length(m.c_fullname) - strpos(substr(reverse(m.c_fullname), 2), '\\') ) as c_path,   c_pathorder + 1 as c_pathorder";
+		
+								sql += "    from " + metadataSchema+tableName  + "  m";
+								sql += "        inner join pathnames p on m.c_fullname = p.c_path where c_synonym_cd='N'";
+		
+								sql += " ) ";
+								sql += " SELECT distinct c_name, c_fullname, c_pathorder as c_hlevel";
+								sql += " FROM   pathnames";
+								sql += " order by c_pathorder desc";
+							}
+							
+							
+							//List  rows = jt.queryForList(sql, path);
+		
+							/*
+							 * 			List<String> names = jt.query(sql,  new RowMapper() {
+							      public Object mapRow(ResultSet resultSet, int i) throws SQLException {
+							        return resultSet.getString(1);
+							      }
+							    }, path);
+							 */
+							List<ConceptType> names = jt.query(sql, new RowMapper<ConceptType>() {
+									public ConceptType mapRow(ResultSet rs, int rowNum) throws SQLException {
+										ConceptType category = new ConceptType();	 
+
+										category.setKey(rs.getString("c_fullname"));
+										category.setLevel(rs.getInt("c_hlevel"));
+										category.setName(rs.getString("c_name"));
+										return category;
+									}
+								}/*new GetConceptParentMapper()*/, parentPath);
+							
+							cType.setKeyName("\\");
+							for (int y=0; y< names.size(); y++) {
+								if(names.get(y).getKey().equals(skipPath)) continue; // only one path component for the category is ever included
+								if(names.get(y).getKey().equals(category)) 
+									cType.setKeyName(cType.getKeyName() + name); // Use the category name instead of the db row name, for clarity
+								else cType.setKeyName(cType.getKeyName() + names.get(y).getName());
+								if ((y + 1) < names.size())
+									cType.setKeyName(cType.getKeyName() + "\\" );
+							//+  \\ ");
+							
+							}
+							// In the event that the category does not have a row in the ontology, insert an entry for it manually
+							// TODO: Is the actual category name anywhere? (Currently using the code)
+							if (names.size()+skipPaths.length-2<cType.getLevel()) cType.setKeyName("\\"+name+cType.getKeyName());
+						}
+						KeynameCache.put(parentPath, cType.getKeyName());
+						cType.setKeyName(cType.getKeyName()+"\\"+cType.getName()+"\\");
+					}
+					if (skipCount>0) log.debug("Skipped keyname lookups due to caching ="+skipCount);
+				}
+				
+				// Add list to results after adding parent list names
+				if (queryResult == null)
+					queryResult = list;
+				else
+					queryResult.addAll(list);
+
+			} catch (DataAccessException e) {
+				log.error("Search by Name " + e.getMessage());
+				throw new I2B2DAOException("Database Error");
 			}
 		}
-		
-
-		String hidden = "";
-		if(vocabType.isHiddens() == false)
-			hidden = " and c_visualattributes not like '_H%'";
-
-
-		String synonym = "";
-		if(vocabType.isSynonyms() == false)
-			synonym = " and c_synonym_cd = 'N'";
-
-		nameInfoSql = nameInfoSql + hidden + synonym + " order by upper(c_name) ";
-
-		log.info(nameInfoSql + " " +compareName);
-		boolean obfuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
-		ParameterizedRowMapper<ConceptType> mapper = getMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType());
-
-		List queryResult = null;
-		try {
-			if(compareName != null)
-				queryResult = jt.query(nameInfoSql, mapper, compareName);
-			else
-				queryResult = jt.query(nameInfoSql, mapper);
-		} catch (DataAccessException e) {
-			log.error("Search by Name " + e.getMessage());
-			throw new I2B2DAOException("Database Error");
-		}
 		log.debug("search by NameInfo result size = " + queryResult.size());
+
+
 		return queryResult;
 
 	}
@@ -903,12 +916,6 @@ public class ConceptDao extends JdbcDaoSupport {
 		}
 
 
-		ParameterizedRowMapper<String> map = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name =  rs.getString("c_table_name");
-				return name;
-			}
-		};
 
 
 		String hidden = "";
@@ -921,7 +928,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		List tableNames=null;
 		String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access " + whereHidden;
 		try {
-			tableNames = jt.query(tableSql, map);	    
+			tableNames = jt.queryForList(tableSql, String.class);	    
 		} catch (DataAccessException e) {
 			log.error("Search by Code " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -940,13 +947,13 @@ public class ConceptDao extends JdbcDaoSupport {
 		String whereClause = null;
 
 		String compareCode = value.toUpperCase();
-		
+
 		if(vocabType.getMatchStr().getStrategy().equals("exact")) {
 			whereClause = " where upper(c_basecode) = '" + compareCode+ "'";
 		}
 
 		else { // need escape logic for like operator
-			
+
 			if(dbType.toUpperCase().equals("SQLSERVER")){
 				compareCode = StringUtil.escapeSQLSERVER(compareCode);
 			}
@@ -1008,11 +1015,11 @@ public class ConceptDao extends JdbcDaoSupport {
 			return null;
 
 		boolean obfuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
-		ParameterizedRowMapper<ConceptType> mapper = getMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType());
+		//	ParameterizedRowMapper<ConceptType> mapper = getMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType());
 
 		List queryResult = null;
 		try {
-			queryResult = jt.query(codeInfoSql, mapper);
+			queryResult = jt.query(codeInfoSql, getConceptNodeMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType()));
 		} catch (DataAccessException e) {
 			log.error("Search by Code " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -1025,6 +1032,8 @@ public class ConceptDao extends JdbcDaoSupport {
 
 	}
 
+
+	/*
 	private ParameterizedRowMapper<String> getColumnMapper() {
 
 		ParameterizedRowMapper<String> mapper = new ParameterizedRowMapper<String>() {
@@ -1036,146 +1045,9 @@ public class ConceptDao extends JdbcDaoSupport {
 		};
 		return mapper;
 	}
+	 */
 
-	private ParameterizedRowMapper<ConceptType> getMapper(final NodeType node, final boolean ofuscatedUserFlag, final String dbType){
 
-		ParameterizedRowMapper<ConceptType> mapper = new ParameterizedRowMapper<ConceptType>() {
-			public ConceptType mapRow(ResultSet rs, int rowNum) throws SQLException {
-				ConceptType child = new ConceptType();	          
-				child.setName(rs.getString("c_name"));
-				if(!(node.getType().equals("default"))){
-					child.setBasecode(rs.getString("c_basecode"));
-					child.setLevel(rs.getInt("c_hlevel"));
-					if (node.getParent().equals("terminfo")) {
-						child.setProtectedAccess(rs.getString("c_protected_access"));
-						child.setOntologyProtection(rs.getString("c_ontology_protection"));
-					}
-					// cover get Code Info case where we dont know the vocabType.category apriori
-					if(node.getNode() != null)	
-						child.setKey("\\\\" + node.getNode() + rs.getString("c_fullname"));  
-					else
-						child.setKey("\\\\" + rs.getString("tableCd") + rs.getString("c_fullname")); 
-					child.setSynonymCd(rs.getString("c_synonym_cd"));
-					child.setVisualattributes(rs.getString("c_visualattributes"));
-					Integer totalNumValue = rs.getInt("c_totalnum");
-					boolean nullFlag = rs.wasNull();
-
-					/*
-					if (nullFlag) { 
-						("null in totalnum flag ");
-					} else { 
-						("not null in totalnum flag ");
-					}
-
-					if (rs.getString("c_totalnum") == null) { 
-						("null in totalnum flag using getString method");
-					} else { 
-						("not null in totalnum flag using getString method  [" + rs.getString("c_totalnum") + "]");
-					}
-					 */
-					if ( ofuscatedUserFlag == false && nullFlag == false) { 
-						child.setTotalnum(totalNumValue);
-					}
-					child.setTooltip(rs.getString("c_tooltip"));
-					child.setValuetypeCd(rs.getString("valuetype_cd"));
-					if(!(node.getType().equals("limited"))) {
-						child.setFacttablecolumn(rs.getString("c_facttablecolumn" ));
-						child.setTablename(rs.getString("c_tablename")); 
-						child.setColumnname(rs.getString("c_columnname")); 
-						child.setColumndatatype(rs.getString("c_columndatatype")); 
-						child.setOperator(rs.getString("c_operator")); 
-						child.setDimcode(rs.getString("c_dimcode")); 
-					}
-				}
-				if(node.isBlob() == true){
-					try {
-						if (dbType.equals("POSTGRESQL"))
-						{
-							if(rs.getString("c_comment") == null)
-								child.setComment(null);
-							else
-								child.setComment(rs.getString("c_comment"));
-						}
-						else {
-
-							if(rs.getClob("c_comment") == null)
-								child.setComment(null);
-							else 
-								child.setComment(JDBCUtil.getClobString(rs.getClob("c_comment")));
-						}
-					} catch (IOException e) {
-						log.error(e.getMessage());
-						child.setComment(null);
-					} 
-
-					String c_xml = null;
-					try {
-
-						if (dbType.equals("POSTGRESQL"))
-							c_xml = rs.getString("c_metadataxml");
-						else if (rs.getClob("c_metadataxml") != null)
-							c_xml = JDBCUtil.getClobString(rs.getClob("c_metadataxml"));
-					} catch (IOException e) {
-						log.error(e.getMessage());
-						child.setMetadataxml(null);
-					}
-
-					if(c_xml == null){
-						child.setMetadataxml(null);
-					}else {
-						if ((c_xml!=null)&&(c_xml.trim().length()>0)&&(!c_xml.equals("(null)")))
-						{
-							Element rootElement = null;
-							try {
-								Document doc = XMLUtil.loadXMLFrom(new java.io.ByteArrayInputStream(c_xml.getBytes()));
-								rootElement = doc.getDocumentElement();
-							} catch (IOException e) {
-								log.error(e.getMessage());
-								child.setMetadataxml(null);
-							} catch (Exception e1) {
-								log.error(e1.getMessage());
-								child.setMetadataxml(null);
-							}
-							if (rootElement != null) {
-								XmlValueType xml = new XmlValueType();
-								xml.getAny().add(rootElement);
-								child.setMetadataxml(xml);
-							}
-						}else {
-							child.setMetadataxml(null);
-						}
-					}	
-
-				}
-				if((node.getType().equals("all"))){
-					DTOFactory factory = new DTOFactory();
-					// make sure date isnt null before converting to XMLGregorianCalendar
-					Date date = rs.getDate("update_date");
-					if (date == null)
-						child.setUpdateDate(null);
-					else 
-						child.setUpdateDate(factory.getXMLGregorianCalendar(date.getTime())); 
-
-					date = rs.getDate("download_date");
-					if (date == null)
-						child.setDownloadDate(null);
-					else 
-						child.setDownloadDate(factory.getXMLGregorianCalendar(date.getTime())); 
-
-					date = rs.getDate("import_date");
-					if (date == null)
-						child.setImportDate(null);
-					else 
-						child.setImportDate(factory.getXMLGregorianCalendar(date.getTime())); 
-
-					child.setSourcesystemCd(rs.getString("sourcesystem_cd"));
-
-				}
-				return child;
-			}
-		};
-		return mapper;
-	}
 
 	private String parseMatchString(String match, DBInfoType dbInfo){
 		String whereClause = null;
@@ -1240,12 +1112,6 @@ public class ConceptDao extends JdbcDaoSupport {
 
 
 
-		ParameterizedRowMapper<String> map = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name = (rs.getString("c_table_name"));
-				return name;
-			}
-		};
 
 
 		String hidden = "";
@@ -1257,7 +1123,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		String tableName=null;
 		String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access where c_table_cd = ? " + hidden;
 		try {
-			tableName = jt.queryForObject(tableSql, map, tableCd);	    
+			tableName = jt.queryForObject(tableSql, String.class, tableCd);	    
 		} catch (DataAccessException e) {
 			log.error("Find Modifiers " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -1342,13 +1208,13 @@ public class ConceptDao extends JdbcDaoSupport {
 		//	("findMods: " + sql );
 		final boolean ofuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
 
-		ParameterizedRowMapper<ModifierType> modMapper = getModMapper(new NodeType (modifierType), ofuscatedUserFlag, dbInfo.getDb_serverType());
+		//		ParameterizedRowMapper<ModifierType> modMapper = getModMapper(new NodeType (modifierType), ofuscatedUserFlag, dbInfo.getDb_serverType());
 
 		List queryResult = null;
 
 		try {
 			//			queryResult = jt.query(sql, modMapper, path );
-			queryResult = jt.query(sql, modMapper);
+			queryResult = jt.query(sql, getModNodeMapper(new NodeType(modifierType),ofuscatedUserFlag, dbInfo.getDb_serverType()));
 		} catch (DataAccessException e) {
 			log.error("Find Modifiers " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -1357,129 +1223,6 @@ public class ConceptDao extends JdbcDaoSupport {
 		return queryResult;
 	}
 
-	private ParameterizedRowMapper<ModifierType> getModMapper(final NodeType node, final boolean ofuscatedUserFlag, final String dbType){
-
-		ParameterizedRowMapper<ModifierType> mapper = new ParameterizedRowMapper<ModifierType>() {
-			public ModifierType mapRow(ResultSet rs, int rowNum) throws SQLException {
-				ModifierType child = new ModifierType();	          
-				if(node.getType().equals("limited")){
-					child.setName(rs.getString("c_name"));
-					child.setAppliedPath(rs.getString("m_applied_path"));
-					child.setBasecode(rs.getString("c_basecode"));
-					child.setKey("\\\\" + node.getNode() + rs.getString("c_fullname"));  
-					child.setLevel(rs.getInt("c_hlevel"));
-					child.setFullname(rs.getString("c_fullname"));  
-					child.setVisualattributes(rs.getString("c_visualattributes"));
-					child.setSynonymCd(rs.getString("c_synonym_cd"));
-					child.setTooltip(rs.getString("c_tooltip"));
-				}else{
-					child.setName(rs.getString("c_name"));
-					child.setAppliedPath(rs.getString("m_applied_path"));
-					child.setBasecode(rs.getString("c_basecode"));
-					child.setKey("\\\\" + node.getNode() + rs.getString("c_fullname"));  
-					child.setLevel(rs.getInt("c_hlevel"));
-					child.setFullname(rs.getString("c_fullname"));  
-					child.setVisualattributes(rs.getString("c_visualattributes"));
-					child.setSynonymCd(rs.getString("c_synonym_cd"));
-					child.setFacttablecolumn(rs.getString("c_facttablecolumn" ));
-					child.setTooltip(rs.getString("c_tooltip"));
-					child.setTablename(rs.getString("c_tablename")); 
-					child.setColumnname(rs.getString("c_columnname")); 
-					child.setColumndatatype(rs.getString("c_columndatatype")); 
-					child.setOperator(rs.getString("c_operator")); 
-					child.setDimcode(rs.getString("c_dimcode")); 
-				}
-
-				if(node.isBlob() == true){
-					try {
-						if (dbType.equals("POSTGRESQL"))
-						{
-							if(rs.getString("c_comment") == null)
-								child.setComment(null);
-							else
-								child.setComment(rs.getString("c_comment"));
-
-						} else {
-							if(rs.getClob("c_comment") == null)
-								child.setComment(null);
-							else
-								child.setComment(JDBCUtil.getClobString(rs.getClob("c_comment")));
-						}
-					} catch (IOException e) {
-						log.error(e.getMessage());
-						child.setComment(null);
-					} 
-
-
-					String c_xml = null;
-					try {
-
-						if (dbType.equals("POSTGRESQL"))
-							c_xml = rs.getString("c_metadataxml");
-						else  if (rs.getClob("c_metadataxml") != null)
-							c_xml = JDBCUtil.getClobString(rs.getClob("c_metadataxml"));
-					} catch (IOException e) {
-						log.error(e.getMessage());
-						child.setMetadataxml(null);
-					}
-
-					if(c_xml == null){
-						child.setMetadataxml(null);
-					}else {
-
-						if ((c_xml!=null)&&(c_xml.trim().length()>0)&&(!c_xml.equals("(null)")))
-						{
-							Element rootElement = null;
-							try {
-								Document doc = XMLUtil.loadXMLFrom(new java.io.ByteArrayInputStream(c_xml.getBytes()));
-								rootElement = doc.getDocumentElement();
-							} catch (IOException e) {
-								log.error(e.getMessage());
-								child.setMetadataxml(null);
-							} catch (Exception e1) {
-								log.error(e1.getMessage());
-								child.setMetadataxml(null);
-							}
-							if (rootElement != null) {
-								XmlValueType xml = new XmlValueType();
-								xml.getAny().add(rootElement);
-								child.setMetadataxml(xml);
-							}
-						}else {
-							child.setMetadataxml(null);
-						}
-					}	
-
-				}
-				if((node.getType().equals("all"))){
-					DTOFactory factory = new DTOFactory();
-					// make sure date isnt null before converting to XMLGregorianCalendar
-					Date date = rs.getDate("update_date");
-					if (date == null)
-						child.setUpdateDate(null);
-					else 
-						child.setUpdateDate(factory.getXMLGregorianCalendar(date.getTime())); 
-
-					date = rs.getDate("download_date");
-					if (date == null)
-						child.setDownloadDate(null);
-					else 
-						child.setDownloadDate(factory.getXMLGregorianCalendar(date.getTime())); 
-
-					date = rs.getDate("import_date");
-					if (date == null)
-						child.setImportDate(null);
-					else 
-						child.setImportDate(factory.getXMLGregorianCalendar(date.getTime())); 
-
-					child.setSourcesystemCd(rs.getString("sourcesystem_cd"));
-
-				}
-				return child;
-			}
-		};
-		return mapper;
-	}
 
 	public List findChildrenByParent(final GetModifierChildrenType modifierChildrenType, ProjectType projectInfo, DBInfoType dbInfo) throws I2B2DAOException, I2B2Exception{
 
@@ -1510,12 +1253,6 @@ public class ConceptDao extends JdbcDaoSupport {
 			throw e;
 		}
 
-		ParameterizedRowMapper<String> map = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name = (rs.getString("c_table_name"));
-				return name;
-			}
-		};
 
 
 		String hidden = "";
@@ -1527,7 +1264,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		String tableName=null;
 		String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access where c_table_cd = ? " + hidden;
 		try {
-			tableName = jt.queryForObject(tableSql, map, tableCd);	    
+			tableName = jt.queryForObject(tableSql, String.class, tableCd);	    
 		} catch (DataAccessException e) {
 			log.error("Get Modifier Children " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -1552,7 +1289,7 @@ public class ConceptDao extends JdbcDaoSupport {
 
 		int level = 0;
 		try {
-			level = jt.queryForInt(levelSql, path, modifierChildrenType.getAppliedPath());
+			level = jt.queryForObject(levelSql, Integer.class, path, modifierChildrenType.getAppliedPath());
 		} catch (DataAccessException e1) {
 			// should only get 1 result back  (path == c_fullname which should be unique)
 			log.error("Get Modifier Children " + e1.getMessage());
@@ -1618,12 +1355,12 @@ public class ConceptDao extends JdbcDaoSupport {
 
 		final boolean ofuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
 
-		ParameterizedRowMapper<ModifierType> modMapper = getModMapper(new NodeType (modifierChildrenType), ofuscatedUserFlag, dbInfo.getDb_serverType());
+		//ParameterizedRowMapper<ModifierType> modMapper = getModMapper(new NodeType (modifierChildrenType), ofuscatedUserFlag, dbInfo.getDb_serverType());
 
 		List queryResult = null;
 
 		try {
-			queryResult = jt.query(sql, modMapper, (level+1), searchPath,  StringUtil.getLiteralPath(modifierChildrenType.getAppliedConcept()),
+			queryResult = jt.query(sql, getModNodeMapper(new NodeType(modifierChildrenType),ofuscatedUserFlag, dbInfo.getDb_serverType()), (level+1), searchPath,  StringUtil.getLiteralPath(modifierChildrenType.getAppliedConcept()),
 					StringUtil.getLiteralPath(modifierChildrenType.getAppliedConcept()));
 		} catch (DataAccessException e) {
 			log.error("Get Modifier Children " + e.getMessage());
@@ -1667,12 +1404,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		}
 
 		//tableCd to table name conversion
-		ParameterizedRowMapper<String> map = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name = (rs.getString("c_table_name"));
-				return name;
-			}
-		};
+
 
 		String hidden = "";
 		if(modifierInfoType.isHiddens() == false)
@@ -1684,7 +1416,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		String tableName=null;
 		String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access where c_table_cd = ? " + hidden;
 		try {
-			tableName = jt.queryForObject(tableSql, map, tableCd);	    
+			tableName = jt.queryForObject(tableSql, String.class, tableCd);	    
 		} catch (DataAccessException e) {
 			log.error("Get Modifier " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -1713,11 +1445,11 @@ public class ConceptDao extends JdbcDaoSupport {
 
 		final boolean ofuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
 
-		ParameterizedRowMapper<ModifierType> modMapper = getModMapper(new NodeType (modifierInfoType), ofuscatedUserFlag, dbInfo.getDb_serverType());
+		//		ParameterizedRowMapper<ModifierType> modMapper = getModMapper(new NodeType (modifierInfoType), ofuscatedUserFlag, dbInfo.getDb_serverType());
 
 		List queryResult = null;
 		try {
-			queryResult = jt.query(sqlWpath, modMapper, searchPath, modifierInfoType.getAppliedPath());
+			queryResult = jt.query(sqlWpath, getModNodeMapper(new NodeType(modifierInfoType),ofuscatedUserFlag, dbInfo.getDb_serverType()), searchPath, modifierInfoType.getAppliedPath());
 
 		} catch (DataAccessException e) {
 			log.error("Get Modifier " + e.getMessage());
@@ -1728,7 +1460,7 @@ public class ConceptDao extends JdbcDaoSupport {
 			sql = sql + hidden + synonym + " order by upper(c_name) ";
 
 			try {
-				queryResult = jt.query(sql, modMapper, searchPath);
+				queryResult = jt.query(sql, getModNodeMapper(new NodeType(modifierInfoType),ofuscatedUserFlag, dbInfo.getDb_serverType()), searchPath);
 
 			} catch (DataAccessException e) {
 				log.error("Get Modifier " + e.getMessage());
@@ -1775,19 +1507,14 @@ public class ConceptDao extends JdbcDaoSupport {
 		}
 
 		//tableCd to table name conversion
-		ParameterizedRowMapper<String> map = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name = (rs.getString("c_table_name"));
-				return name;
-			}
-		};
+
 
 		//extract table code
 		String tableCd = StringUtil.getTableCd(vocabType.getSelf());
 		String tableName=null;
 		String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access where c_table_cd = ? " ;
 		try {
-			tableName = jt.queryForObject(tableSql, map, tableCd);	    
+			tableName = jt.queryForObject(tableSql, String.class, tableCd);	    
 		} catch (DataAccessException e) {
 			log.error("Get Modifier by name " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -1929,14 +1656,14 @@ public class ConceptDao extends JdbcDaoSupport {
 		//		log.debug("MODnameInfo: " + modNameInfoSql + " " +compareName);
 		boolean obfuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
 
-		ParameterizedRowMapper<ModifierType> modMapper = getModMapper(new NodeType(vocabType), obfuscatedUserFlag, dbInfo.getDb_serverType());
+		//		ParameterizedRowMapper<ModifierType> modMapper = getModMapper(new NodeType(vocabType), obfuscatedUserFlag, dbInfo.getDb_serverType());
 
 		List queryResult = null;
 		try {
 			if(compareName != null)
-				queryResult = jt.query(modNameInfoSql, modMapper);
+				queryResult = jt.query(modNameInfoSql, getModNodeMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType()));
 			else
-				queryResult = jt.query(modNameInfoSql, modMapper);
+				queryResult = jt.query(modNameInfoSql, getModNodeMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType()));
 		} catch (DataAccessException e) {
 			log.error("Get Modifier by name " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -1983,12 +1710,6 @@ public class ConceptDao extends JdbcDaoSupport {
 		}
 
 		//tableCd to table name conversion
-		ParameterizedRowMapper<String> map = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name = (rs.getString("c_table_name"));
-				return name;
-			}
-		};
 
 
 		String hidden = "";
@@ -2000,7 +1721,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		String tableName=null;
 		String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access where c_table_cd = ? " + hidden;
 		try {
-			tableName = jt.queryForObject(tableSql, map, tableCd);	    
+			tableName = jt.queryForObject(tableSql, String.class, tableCd);	    
 		} catch (DataAccessException e) {
 			log.error("Get Modifier by Code " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -2110,11 +1831,11 @@ public class ConceptDao extends JdbcDaoSupport {
 
 		//		log.debug("MODCodeInfo " + modCodeInfoSql);
 		boolean obfuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
-		ParameterizedRowMapper<ModifierType> modMapper = getModMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType());
+		//ParameterizedRowMapper<ModifierType> modMapper = getModMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType());
 
 		List queryResult = null;
 		try {
-			queryResult = jt.query(modCodeInfoSql, modMapper);
+			queryResult = jt.query(modCodeInfoSql, getModNodeMapper(new NodeType(vocabType),obfuscatedUserFlag, dbInfo.getDb_serverType()));
 		} catch (DataAccessException e) {
 			log.error("Get Modifier by Code " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -2151,12 +1872,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		boolean ofuscatedUserFlag = Roles.getInstance().isRoleOfuscated(projectInfo);
 
 		//tableCd to table name conversion
-		ParameterizedRowMapper<String> map = new ParameterizedRowMapper<String>() {
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				String name = (rs.getString("c_table_name"));
-				return name;
-			}
-		};
+
 
 
 		String hidden = "";
@@ -2169,7 +1885,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		if (!protectedAccess){
 			String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access where c_table_cd = ? and c_protected_access = ? " + hidden;
 			try {
-				tableName = jt.queryForObject(tableSql, map, tableCd, "N");	    
+				tableName = jt.queryForObject(tableSql, String.class, tableCd, "N");	    
 			} catch (DataAccessException e) {
 				log.error("Get Derived Fact Columns " + e.getMessage());
 				throw new I2B2DAOException("Database Error");
@@ -2177,7 +1893,7 @@ public class ConceptDao extends JdbcDaoSupport {
 		}else {
 			String tableSql = "select distinct(c_table_name) from " + metadataSchema + "table_access where c_table_cd = ? " + hidden;
 			try {
-				tableName = jt.queryForObject(tableSql, map, tableCd);	    
+				tableName = jt.queryForObject(tableSql, String.class, tableCd);	    
 			} catch (DataAccessException e) {
 				log.error("Get Derived Fact Columns " + e.getMessage());
 				throw new I2B2DAOException("Database Error");
@@ -2222,11 +1938,11 @@ public class ConceptDao extends JdbcDaoSupport {
 			searchPath += "%";
 		}
 
-		ParameterizedRowMapper<String> columnMapper = getColumnMapper();
+		//ParameterizedRowMapper<String> columnMapper = getColumnMapper();
 
 		List queryResult = null;
 		try {
-			queryResult = jt.query(sql, columnMapper, searchPath );
+			queryResult = jt.queryForList(sql, String.class, searchPath );
 		} catch (DataAccessException e) {
 			log.error("Get Derived Fact Columna " + e.getMessage());
 			throw new I2B2DAOException("Database Error");
@@ -2240,4 +1956,532 @@ public class ConceptDao extends JdbcDaoSupport {
 	}
 
 
+	private GetConceptXMLMapper getConceptXMLMapper(DBInfoType dbInfo) {
+		GetConceptXMLMapper mapper= new GetConceptXMLMapper();
+		mapper.setdbInfo(dbInfo);
+		return mapper;
+	}
+
+
+	private GetModNodeMapper getModNodeMapper(NodeType nodeType, boolean obfuscatedUserFlag,
+			String db_serverType) {
+		// TODO Auto-generated method stub
+		GetModNodeMapper mapper = new GetModNodeMapper();
+		mapper.setDbType(db_serverType);
+		mapper.setNodeType(nodeType);
+		mapper.setObfuscatedUserFlag(obfuscatedUserFlag);
+		return mapper;
+	}
+
+
+	private GetConceptNodeMapper getConceptNodeMapper(NodeType nodeType, boolean obfuscatedUserFlag,
+			String db_serverType) {
+		// TODO Auto-generated method stub
+		GetConceptNodeMapper mapper = new GetConceptNodeMapper();
+		mapper.setDbType(db_serverType);
+		mapper.setNodeType(nodeType);
+		mapper.setObfuscatedUserFlag(obfuscatedUserFlag);
+		return mapper;
+	}
+
+	private GetConceptFullNameMapper getConceptFullNameMapper(GetCategoriesType returnType, ProjectType projectInfo,
+			boolean obfuscatedUserFlag) {
+		GetConceptFullNameMapper mapper = new GetConceptFullNameMapper();
+		mapper.setObfuscatedUserFlag(obfuscatedUserFlag);
+		mapper.setProjectInfo(projectInfo);
+		mapper.setReturnType(returnType);
+		return mapper;
+	}
+
+
+}
+
+
+class GetConceptNodeMapper implements RowMapper<ConceptType> {
+
+	boolean ofuscatedUserFlag;
+	NodeType node;
+	String dbType;
+
+
+	public void setObfuscatedUserFlag(boolean obfuscatedUserFlag) {
+		this.ofuscatedUserFlag = obfuscatedUserFlag;
+	}
+
+
+	public void setNodeType(NodeType nodeType) {
+		this.node = nodeType;
+	}
+
+
+	public void setDbType(String dbType) {
+		this.dbType = dbType;
+	}
+
+
+	@Override
+	public ConceptType mapRow(ResultSet rs, int rowNum) throws SQLException {
+		ConceptType child = new ConceptType();	          
+		child.setName(rs.getString("c_name"));
+		if(!(node.getType().equals("default"))){
+			child.setBasecode(rs.getString("c_basecode"));
+			child.setLevel(rs.getInt("c_hlevel"));
+			if (node.getParent().equals("terminfo")) {
+				child.setProtectedAccess(rs.getString("c_protected_access"));
+				child.setOntologyProtection(rs.getString("c_ontology_protection"));
+			}
+			// cover get Code Info case where we dont know the vocabType.category apriori
+			if ((node.getNode() != null) && !node.getNode().equals("@"))
+				child.setKey("\\\\" + node.getNode() + rs.getString("c_fullname"));  
+			else
+				child.setKey("\\\\" + rs.getString("tableCd") + rs.getString("c_fullname")); 
+			child.setSynonymCd(rs.getString("c_synonym_cd"));
+			child.setVisualattributes(rs.getString("c_visualattributes"));
+			Integer totalNumValue = rs.getInt("c_totalnum");
+			boolean nullFlag = rs.wasNull();
+
+			/*
+				if (nullFlag) { 
+					("null in totalnum flag ");
+				} else { 
+					("not null in totalnum flag ");
+				}
+
+				if (rs.getString("c_totalnum") == null) { 
+					("null in totalnum flag using getString method");
+				} else { 
+					("not null in totalnum flag using getString method  [" + rs.getString("c_totalnum") + "]");
+				}
+			 */
+			if ( ofuscatedUserFlag == false && nullFlag == false) { 
+				child.setTotalnum(totalNumValue);
+			}
+			child.setTooltip(rs.getString("c_tooltip"));
+			child.setValuetypeCd(rs.getString("valuetype_cd"));
+			if(!(node.getType().equals("limited"))) {
+				child.setFacttablecolumn(rs.getString("c_facttablecolumn" ));
+				child.setTablename(rs.getString("c_tablename")); 
+				child.setColumnname(rs.getString("c_columnname")); 
+				child.setColumndatatype(rs.getString("c_columndatatype")); 
+				child.setOperator(rs.getString("c_operator")); 
+				child.setDimcode(rs.getString("c_dimcode")); 
+			}
+		}
+		if(node.isBlob() == true){
+			try {
+				if (dbType.equals("POSTGRESQL"))
+				{
+					if(rs.getString("c_comment") == null)
+						child.setComment(null);
+					else
+						child.setComment(rs.getString("c_comment"));
+				}
+				else {
+
+					if(rs.getClob("c_comment") == null)
+						child.setComment(null);
+					else 
+						child.setComment(JDBCUtil.getClobString(rs.getClob("c_comment")));
+				}
+			} catch (IOException e) {
+				child.setComment(null);
+			} 
+
+			String c_xml = null;
+			try {
+
+				if (dbType.equals("POSTGRESQL"))
+					c_xml = rs.getString("c_metadataxml");
+				else if (rs.getClob("c_metadataxml") != null)
+					c_xml = JDBCUtil.getClobString(rs.getClob("c_metadataxml"));
+			} catch (IOException e) {
+				child.setMetadataxml(null);
+			}
+
+			if(c_xml == null){
+				child.setMetadataxml(null);
+			}else {
+				if ((c_xml!=null)&&(c_xml.trim().length()>0)&&(!c_xml.equals("(null)")))
+				{
+					Element rootElement = null;
+					try {
+						Document doc = XMLUtil.loadXMLFrom(new java.io.ByteArrayInputStream(c_xml.getBytes()));
+						rootElement = doc.getDocumentElement();
+					} catch (IOException e) {
+						child.setMetadataxml(null);
+					} catch (Exception e1) {
+						child.setMetadataxml(null);
+					}
+					if (rootElement != null) {
+						XmlValueType xml = new XmlValueType();
+						xml.getAny().add(rootElement);
+						child.setMetadataxml(xml);
+					}
+				}else {
+					child.setMetadataxml(null);
+				}
+			}	
+
+		}
+		if((node.getType().equals("all"))){
+			DTOFactory factory = new DTOFactory();
+			// make sure date isnt null before converting to XMLGregorianCalendar
+			Date date = rs.getDate("update_date");
+			if (date == null)
+				child.setUpdateDate(null);
+			else 
+				child.setUpdateDate(factory.getXMLGregorianCalendar(date.getTime())); 
+
+			date = rs.getDate("download_date");
+			if (date == null)
+				child.setDownloadDate(null);
+			else 
+				child.setDownloadDate(factory.getXMLGregorianCalendar(date.getTime())); 
+
+			date = rs.getDate("import_date");
+			if (date == null)
+				child.setImportDate(null);
+			else 
+				child.setImportDate(factory.getXMLGregorianCalendar(date.getTime())); 
+
+			child.setSourcesystemCd(rs.getString("sourcesystem_cd"));
+
+		}
+		return child;
+	}
+
+}
+
+
+
+class GetConceptNameMapper implements RowMapper<ConceptType> {
+	@Override
+	public ConceptType mapRow(ResultSet rs, int rowNum) throws SQLException {
+		ConceptType category = new ConceptType();	 
+
+		category.setTablename(rs.getString("c_table_name"));
+		category.setKey(rs.getString("c_fullname"));
+		category.setName(rs.getString("c_name"));
+		return category;
+	}
+}
+
+class GetConceptParentMapper implements RowMapper<ConceptType> {
+	@Override
+	public ConceptType mapRow(ResultSet rs, int rowNum) throws SQLException {
+		ConceptType category = new ConceptType();	 
+
+		//category.setLevel(rs.getInt("c_hevel"));
+		category.setName(rs.getString("c_name"));
+		return category;
+	}
+}
+
+
+class GetConceptFullNameMapper implements RowMapper<ConceptType> {
+	boolean obfuscatedUserFlag;
+	GetCategoriesType returnType;
+	public void setReturnType(GetCategoriesType returnType) {
+		this.returnType = returnType;
+	}
+
+
+	public void setProjectInfo(ProjectType projectInfo) {
+		this.projectInfo = projectInfo;
+	}
+
+
+	ProjectType projectInfo;
+
+	public void setObfuscatedUserFlag(boolean obfuscatedUserFlag) {
+		this.obfuscatedUserFlag = obfuscatedUserFlag;
+	}
+
+
+	@Override
+	public ConceptType mapRow(ResultSet rs, int rowNum) throws SQLException {
+		ConceptType child = new ConceptType();
+		//TODO fix this for all
+		child.setKey("\\\\" + rs.getString("c_table_cd")+ rs.getString("c_fullname")); 
+		child.setName(rs.getString("c_name"));
+		if(returnType.getType().equals("limited")) {
+			child.setBasecode(rs.getString("c_basecode"));
+			child.setLevel(rs.getInt("c_hlevel"));
+			child.setSynonymCd(rs.getString("c_synonym_cd"));
+			child.setVisualattributes(rs.getString("c_visualattributes"));
+
+			child.setTooltip(rs.getString("c_tooltip"));
+			child.setValuetypeCd(rs.getString("valuetype_cd"));
+			child.setProtectedAccess(rs.getString("c_protected_access"));
+			child.setOntologyProtection(rs.getString("c_ontology_protection"));
+
+		}
+		else if(returnType.getType().equals("core")) {
+			child.setBasecode(rs.getString("c_basecode"));
+			child.setLevel(rs.getInt("c_hlevel"));
+			child.setSynonymCd(rs.getString("c_synonym_cd"));
+			child.setVisualattributes(rs.getString("c_visualattributes"));
+			child.setProtectedAccess(rs.getString("c_protected_access"));
+			child.setOntologyProtection(rs.getString("c_ontology_protection"));
+
+			Integer totalNum = rs.getInt("c_totalnum");
+			boolean nullFlag = rs.wasNull();
+
+
+			if (nullFlag) { 
+			} else { 
+			}
+
+			if (rs.getString("c_totalnum") == null) { 
+			} else { 
+			}
+
+			if (obfuscatedUserFlag == false && nullFlag == false) {
+				child.setTotalnum(totalNum);
+			} 
+
+
+			child.setFacttablecolumn(rs.getString("c_facttablecolumn" ));
+			child.setTablename(rs.getString("c_dimtablename")); 
+			child.setColumnname(rs.getString("c_columnname")); 
+			child.setColumndatatype(rs.getString("c_columndatatype")); 
+			child.setOperator(rs.getString("c_operator")); 
+			child.setDimcode(rs.getString("c_dimcode")); 
+			child.setTooltip(rs.getString("c_tooltip"));
+			child.setValuetypeCd(rs.getString("valuetype_cd"));
+		}
+		if (child.getProtectedAccess().equalsIgnoreCase("Y"))
+		{
+			Boolean protectedAccess = false;
+			String[] dataProt = {"DATA_PROT"};
+			List<String> ontologyProtection = Arrays.asList(child.getOntologyProtection() == null || child.getOntologyProtection().equals("")?dataProt:child.getOntologyProtection().split(","));
+			for (String s: projectInfo.getRole()) {
+				if (ontologyProtection.contains(s))
+					protectedAccess = true;
+
+			}
+			if (protectedAccess == false)
+				child = null;
+		}
+
+		return child;
+	}
+}
+
+
+
+
+class GetModNodeMapper implements RowMapper<ModifierType> {
+
+	boolean ofuscatedUserFlag;
+	NodeType node;
+	String dbType;
+
+
+	public void setObfuscatedUserFlag(boolean obfuscatedUserFlag) {
+		this.ofuscatedUserFlag = obfuscatedUserFlag;
+	}
+
+
+	public void setNodeType(NodeType nodeType) {
+		this.node = nodeType;
+	}
+
+
+	public void setDbType(String dbType) {
+		this.dbType = dbType;
+	}
+
+
+	@Override
+	public ModifierType mapRow(ResultSet rs, int rowNum) throws SQLException {
+		ModifierType child = new ModifierType();	          
+		if(node.getType().equals("limited")){
+			child.setName(rs.getString("c_name"));
+			child.setAppliedPath(rs.getString("m_applied_path"));
+			child.setBasecode(rs.getString("c_basecode"));
+			child.setKey("\\\\" + node.getNode() + rs.getString("c_fullname"));  
+			child.setLevel(rs.getInt("c_hlevel"));
+			child.setFullname(rs.getString("c_fullname"));  
+			child.setVisualattributes(rs.getString("c_visualattributes"));
+			child.setSynonymCd(rs.getString("c_synonym_cd"));
+			child.setTooltip(rs.getString("c_tooltip"));
+		}else{
+			child.setName(rs.getString("c_name"));
+			child.setAppliedPath(rs.getString("m_applied_path"));
+			child.setBasecode(rs.getString("c_basecode"));
+			child.setKey("\\\\" + node.getNode() + rs.getString("c_fullname"));  
+			child.setLevel(rs.getInt("c_hlevel"));
+			child.setFullname(rs.getString("c_fullname"));  
+			child.setVisualattributes(rs.getString("c_visualattributes"));
+			child.setSynonymCd(rs.getString("c_synonym_cd"));
+			child.setFacttablecolumn(rs.getString("c_facttablecolumn" ));
+			child.setTooltip(rs.getString("c_tooltip"));
+			child.setTablename(rs.getString("c_tablename")); 
+			child.setColumnname(rs.getString("c_columnname")); 
+			child.setColumndatatype(rs.getString("c_columndatatype")); 
+			child.setOperator(rs.getString("c_operator")); 
+			child.setDimcode(rs.getString("c_dimcode")); 
+		}
+
+		if(node.isBlob() == true){
+			try {
+				if (dbType.equals("POSTGRESQL"))
+				{
+					if(rs.getString("c_comment") == null)
+						child.setComment(null);
+					else
+						child.setComment(rs.getString("c_comment"));
+
+				} else {
+					if(rs.getClob("c_comment") == null)
+						child.setComment(null);
+					else
+						child.setComment(JDBCUtil.getClobString(rs.getClob("c_comment")));
+				}
+			} catch (IOException e) {
+				child.setComment(null);
+			} 
+
+
+			String c_xml = null;
+			try {
+
+				if (dbType.equals("POSTGRESQL"))
+					c_xml = rs.getString("c_metadataxml");
+				else  if (rs.getClob("c_metadataxml") != null)
+					c_xml = JDBCUtil.getClobString(rs.getClob("c_metadataxml"));
+			} catch (IOException e) {
+				child.setMetadataxml(null);
+			}
+
+			if(c_xml == null){
+				child.setMetadataxml(null);
+			}else {
+
+				if ((c_xml!=null)&&(c_xml.trim().length()>0)&&(!c_xml.equals("(null)")))
+				{
+					Element rootElement = null;
+					try {
+						Document doc = XMLUtil.loadXMLFrom(new java.io.ByteArrayInputStream(c_xml.getBytes()));
+						rootElement = doc.getDocumentElement();
+					} catch (IOException e) {
+						child.setMetadataxml(null);
+					} catch (Exception e1) {
+						child.setMetadataxml(null);
+					}
+					if (rootElement != null) {
+						XmlValueType xml = new XmlValueType();
+						xml.getAny().add(rootElement);
+						child.setMetadataxml(xml);
+					}
+				}else {
+					child.setMetadataxml(null);
+				}
+			}	
+
+		}
+		if((node.getType().equals("all"))){
+			DTOFactory factory = new DTOFactory();
+			// make sure date isnt null before converting to XMLGregorianCalendar
+			Date date = rs.getDate("update_date");
+			if (date == null)
+				child.setUpdateDate(null);
+			else 
+				child.setUpdateDate(factory.getXMLGregorianCalendar(date.getTime())); 
+
+			date = rs.getDate("download_date");
+			if (date == null)
+				child.setDownloadDate(null);
+			else 
+				child.setDownloadDate(factory.getXMLGregorianCalendar(date.getTime())); 
+
+			date = rs.getDate("import_date");
+			if (date == null)
+				child.setImportDate(null);
+			else 
+				child.setImportDate(factory.getXMLGregorianCalendar(date.getTime())); 
+
+			child.setSourcesystemCd(rs.getString("sourcesystem_cd"));
+
+		}
+		return child;
+	}
+
+}
+
+class GetConceptXMLMapper implements RowMapper<ConceptType> {
+
+	DBInfoType dbInfo;
+
+
+
+
+
+	public void setdbInfo(DBInfoType dbInfo) {
+		this.dbInfo = dbInfo;
+	}
+
+
+	@Override	
+
+	public ConceptType mapRow(ResultSet rs, int rowNum) throws SQLException {
+		ConceptType concept = new ConceptType();
+		//			        	ResultSetMetaData rsmd = rs.getMetaData();
+		//			        	rsmd.get
+
+		String c_xml = null;
+		try {
+
+			if (dbInfo.getDb_serverType().equals("POSTGRESQL"))
+				c_xml = rs.getString("c_metadataxml");
+			else  if (rs.getClob("c_metadataxml") != null)
+				c_xml = JDBCUtil.getClobString(rs.getClob("c_metadataxml"));
+		} catch (IOException e) {
+			concept.setMetadataxml(null);
+		}
+
+		if(c_xml == null){
+			concept.setMetadataxml(null);
+		}else {
+
+			if ((c_xml!=null)&&(c_xml.trim().length()>0)&&(!c_xml.equals("(null)")))
+			{
+				//SAXBuilder parser = new SAXBuilder();
+				java.io.StringReader xmlStringReader = new java.io.StringReader(c_xml);
+				Element rootElement = null;
+				try {
+					Document doc = XMLUtil.loadXMLFrom(new java.io.ByteArrayInputStream(c_xml.getBytes()));
+					rootElement = doc.getDocumentElement();
+				} catch (IOException e) {
+					concept.setMetadataxml(null);
+				} catch (Exception e) {
+					concept.setMetadataxml(null);
+				}
+				if(rootElement != null) {
+					XmlValueType xml = new XmlValueType();									
+					xml.getAny().add(rootElement);								
+					concept.setMetadataxml(xml);
+				}
+			}else {
+				concept.setMetadataxml(null);
+			}
+		}	
+
+		try {
+			if (dbInfo.getDb_serverType().equals("POSTGRESQL"))
+			{
+				concept.setComment(rs.getString("c_comment"));
+			} else  if (rs.getClob("c_comment") != null)
+			{
+				concept.setComment(JDBCUtil.getClobString(rs.getClob("c_comment")));
+			}
+		}
+		catch (Exception e)
+		{
+			concept.setComment(null);
+		}
+
+		return concept;
+	}
 }

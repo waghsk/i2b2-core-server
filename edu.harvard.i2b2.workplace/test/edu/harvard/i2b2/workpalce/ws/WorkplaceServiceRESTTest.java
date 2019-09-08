@@ -38,8 +38,7 @@ import org.junit.runners.MethodSorters;
 public class WorkplaceServiceRESTTest extends WorkplaceAxisAbstract{
 	private static String testFileDir = "";
 
-	private static String workplaceTargetEPR = 
-			"http://localhost:9090/i2b2/services/WorkplaceService/";			
+	private static String workplaceTargetEPR = null;	
 
 	private static String getFoldersByProject = "getFoldersByProject";
 	private static String getFoldersByUserId = "getFoldersByUserId";
@@ -48,10 +47,10 @@ public class WorkplaceServiceRESTTest extends WorkplaceAxisAbstract{
 	private static String setProtectedAccess = "setProtectedAccess";
 
 	//swc20160722 added following 4 DBlookup related
-	private static String getAllDBlookups = workplaceTargetEPR + "getAllDblookups";
-	private static String setDBlookup = workplaceTargetEPR + "setDblookup";
-	private static String getDBlookup = workplaceTargetEPR + "getDblookup";
-	private static String deleteDBlookup = workplaceTargetEPR + "deleteDblookup";
+	private static String getAllDBlookups = null;
+	private static String setDBlookup = null;
+	private static String getDBlookup = null;
+	private static String deleteDBlookup = null;
 
 	//	"http://127.0.0.1:8080/i2b2/services/PMService/getServices";	
 	private static String demoIndex = "";
@@ -67,6 +66,17 @@ public class WorkplaceServiceRESTTest extends WorkplaceAxisAbstract{
 
 	@BeforeClass
 	public static void setUp() throws Exception {
+		String host = (System.getProperty("testhost") == null ? "http://127.0.0.1:9090/i2b2/services" : System.getProperty("testhost") ) ;
+		workplaceTargetEPR = 
+				host + "/WorkplaceService/";	
+		
+		
+		getAllDBlookups = workplaceTargetEPR + "getAllDblookups";
+		setDBlookup = workplaceTargetEPR + "setDblookup";
+		getDBlookup = workplaceTargetEPR + "getDblookup";
+		deleteDBlookup = workplaceTargetEPR + "deleteDblookup";
+		
+		
 		testFileDir = "test"; //System.getProperty("testfiledir");
 		System.out.println("test file dir " + testFileDir);
 

@@ -131,7 +131,7 @@ public class StartAnalysis implements StartAnalysisLocal {
 			 */
 
 			long timeout = msgHelper.getTimeout();
-			StartJobHandler startJobHandler = new StartJobHandler(
+		StartJobHandler startJobHandler = new StartJobHandler(
 					QueryProcessorUtil.getInstance().getQuartzScheduler());
 
 			startJobHandler.startNonQuartzJob(domainId, projectId, userId,
@@ -139,6 +139,7 @@ public class StartAnalysis implements StartAnalysisLocal {
 
 			// Thread.sleep(timeout);
 			waitForProcess(timeout, queryInstanceId);
+			
 		} catch (ExecException execEx) {
 			if (execEx.getExitStatus().equals(ExecException.TIMEOUT_STATUS)) {
 				statusName = StatusEnum.QUEUED.toString();

@@ -1,11 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2006-2018 Massachusetts General Hospital 
- * All rights reserved. This program and the accompanying materials 
- * are made available under the terms of the Mozilla Public License,
- * v. 2.0. If a copy of the MPL was not distributed with this file, You can
- * obtain one at http://mozilla.org/MPL/2.0/. I2b2 is also distributed under
- * the terms of the Healthcare Disclaimer.
- ******************************************************************************/
 package edu.harvard.i2b2.crc.quartz;
 
 import java.util.Date;
@@ -113,7 +105,8 @@ public class AnalysisJobStarter {
 			errorFlag = true;
 			statusMsg = e.getMessage();
 			individualEx = e;
-			e.printStackTrace();
+			//e.printStackTrace();
+			log.info(" ** quartz.AnalysisJobStarter.start PROBLEM: ", e); //log printStackTrace instead
 		} catch (I2B2DAOException e) {
 			errorFlag = true;
 			statusMsg = e.getMessage();
@@ -144,26 +137,27 @@ public class AnalysisJobStarter {
 					}
 				}
 			} else {
-				statusType = StatusEnum.COMPLETED.toString();
+			statusType = StatusEnum.COMPLETED.toString();
+				
 			}
 			try {
-
-				// update status to query instance
 				QueryInstance queryInstanceHelper = new QueryInstance(
 						daoFactory.getSetFinderDAOFactory());
+				if(errorFlag) {
+					// update status to query instance
 
-				queryInstanceHelper.updateInstanceStatus(instanceId,
-						statusType, stacktrace);
-				// update result instance
-				queryInstanceHelper.updateResultInstanceStatusByInstanceId(
-						instanceId, statusType, 0, stacktrace);
+					queryInstanceHelper.updateInstanceStatus(instanceId,
+							statusType, stacktrace);
+					// update result instance
+					queryInstanceHelper.updateResultInstanceStatusByInstanceId(
+							instanceId, statusType, 0, stacktrace);
 
-				// update status to analysis job table in the hive if the queue
-				// name is medium or large
+					// update status to analysis job table in the hive if the queue
+					// name is medium or large
 
-				crcQueueDao = DataSourceLookupDAOFactory.getCRCQueueDAO();
-				crcQueueDao.updateStatus(instanceId, projectId, statusType);
-
+					crcQueueDao = DataSourceLookupDAOFactory.getCRCQueueDAO();
+					crcQueueDao.updateStatus(instanceId, projectId, statusType);
+				}
 				if (timeoutFlag) {
 					AnalysisJob analysisJob = null;
 					AnalysisQueue.QueueType jobQueue = AnalysisQueue.QueueType.FILLER;
@@ -201,7 +195,8 @@ public class AnalysisJobStarter {
 											resultList);
 						} catch (JAXBUtilException e) {
 							// TODO Auto-generated catch block
-							e.printStackTrace();
+							//e.printStackTrace();
+							log.error(" ** quartz.AnalysisJobStarter.start PROBLEM: ", e); //log printStackTrace instead
 						}
 
 						analysisJob = new AnalysisJob();

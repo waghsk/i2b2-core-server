@@ -44,8 +44,7 @@ import org.junit.runners.MethodSorters;
 public class IMServiceRESTTest extends IMAxisAbstract{
 	private static String testFileDir = "";
 
-	private static String imTargetEPR = 
-			"http://127.0.0.1:9090/i2b2/services/IMService/";			
+	private static String imTargetEPR = null;	
 
 	private static String isKeySet = "isKeySet";
 	private static String pdorequest = "pdorequest";
@@ -54,10 +53,10 @@ public class IMServiceRESTTest extends IMAxisAbstract{
 	private static String getAudit = "getAudit";
 
 	//swc20160721 added following 4 DBlookup related
-	private static String getAllDBlookups = imTargetEPR + "getAllDblookups";
-	private static String setDBlookup = imTargetEPR + "setDblookup";
-	private static String getDBlookup = imTargetEPR + "getDblookup";
-	private static String deleteDBlookup = imTargetEPR + "deleteDblookup";
+	private static String getAllDBlookups =  null;	
+	private static String setDBlookup =  null;	
+	private static String getDBlookup =  null;	
+	private static String deleteDBlookup =  null;	
 	
 	public static junit.framework.Test suite() { 
 		return new JUnit4TestAdapter(IMServiceRESTTest.class);
@@ -66,7 +65,16 @@ public class IMServiceRESTTest extends IMAxisAbstract{
 
 	@BeforeClass
 	public static void setUp() throws Exception {
+		String host = (System.getProperty("testhost") == null ? "http://127.0.0.1:9090/i2b2/services" : System.getProperty("testhost") ) ;
+		imTargetEPR = 
+				host + "/IMService/";	
+		 
 		testFileDir = "test"; //System.getProperty("testfiledir");
+		
+		getAllDBlookups = imTargetEPR + "getAllDblookups";
+		setDBlookup = imTargetEPR + "setDblookup";
+		getDBlookup = imTargetEPR + "getDblookup";
+		 deleteDBlookup = imTargetEPR + "deleteDblookup";
 		System.out.println("test file dir " + testFileDir);
 
 		if (!((testFileDir != null) && (testFileDir.trim().length() > 0))) {

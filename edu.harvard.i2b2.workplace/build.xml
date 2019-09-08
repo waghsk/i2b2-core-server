@@ -41,6 +41,31 @@
 	<!-- 								COMMON JAXB GENERATION 				 -->
 	<!-- =================================================================== -->
 	<target name="jaxb_gen" depends="init" description="Generate JAXB classes for i2b2 and Vocab Data messages">
+		
+		<exec executable="xjc">
+					        <arg value="-d"/>
+					        <arg value="${gensrc}"/>
+					        <arg value="../${i2b2xmlproject}/xsd/cell/work_1.1/WORK_QRY.xsd"/>
+					        <arg value="../${i2b2xmlproject}/xsd/cell/work_1.1/WORK_RESP.xsd"/>
+				        <arg value="../${i2b2xmlproject}/xsd/cell/pm_1.1/PM_USER.xsd"/>
+	        <arg value="../${i2b2xmlproject}/xsd/hive/msg_1.1/i2b2_response.xsd"/>
+	        <arg value="../${i2b2xmlproject}/xsd/cell/crc/psm_1.1/CRC_PSM_QRY.xsd"/>
+            <arg value="../${i2b2xmlproject}/xsd/cell/crc/psm_1.1/CRC_PSM_QRY_analysis_definition.xsd"/>
+	        <arg value="../${i2b2xmlproject}/xsd/cell/crc/psm_1.1/CRC_PSM_QRY_query_definition.xsd"/>
+			<arg value="-b"/>
+				        <arg value="./etc/xsd_1.1/i2b2_wdo_bindings.xjb"/>
+				        <arg value="-b"/>
+				        <arg value="./etc/xsd_1.1/i2b2_response_message_bindings.xjb"/>
+				        <arg value="-b"/>
+				        <arg value="./etc/xsd_1.1/i2b2_pm_bindings.xjb"/>
+	        <arg value="-b"/>
+	        <arg value="./etc/xsd_1.1/i2b2_crc_psm_bindings.xjb"/>
+	        <arg value="-b"/>
+	        <arg value="./etc/xsd_1.1/i2b2_psm_analysisdefinition_bindings.xjb"/>
+		        <arg value="-b"/>
+		        <arg value="./etc/xsd_1.1/i2b2_psm_querydefinition_bindings.xjb"/>
+		</exec>
+		<!--
 				<xjc destdir="${gensrc}" removeOldOutput="no">
 					<schema dir="../${i2b2xmlproject}/xsd/cell/work_1.1" includes="WORK_QRY.xsd" />
 					<schema dir="../${i2b2xmlproject}/xsd/cell/work_1.1" includes="WORK_RESP.xsd" />
@@ -56,6 +81,7 @@
 					<binding dir="." includes="etc/xsd_1.1/i2b2_psm_analysisdefinition_bindings.xjb" />
 					<binding dir="." includes="etc/xsd_1.1/i2b2_psm_querydefinition_bindings.xjb" />
 				</xjc>
+				-->
 		</target>
 
 	<!-- =================================================================== -->
@@ -63,7 +89,7 @@
 	<!-- =================================================================== -->
 	<target name="compile" depends="init,jaxb_gen" description="Compile files without cleaning">
 		<mkdir dir="${classes}" />
-		<javac destdir="${classes}" optimize="${javac.opt}" debug="${javac.debug}">
+		<javac destdir="${classes}" optimize="${javac.opt}" debug="true">
 			<src path="${src}" />
 			<src path="${gensrc}" />
 			<src path="test" />			
@@ -80,7 +106,9 @@
 		<echo message="${Name}: Creating the archive package!" />
 		<antcall target="axis2aar" />
 		<antcall target="jar_core" />
+		<!--
 		<antcall target="dist-server" />
+		-->
 	</target>
 	
 	<!-- Axis2 archive file -->
@@ -147,13 +175,14 @@
 			<!--	<exclude name="**/jboss.xml" /> -->
 			</fileset>
 		</copy>
-			
+			<!--
 			<echo message="copying property files to ${edu.harvard.i2b2.workplace.applicationdir}"/>
 			<copy todir="${edu.harvard.i2b2.workplace.applicationdir}">
 				<fileset dir="${etc}/spring">
 					<exclude name="workplace_application_directory.properties" />
 				</fileset>
 			</copy>
+			-->
 		</target>
 
 	<!-- =================================================================== -->
@@ -187,6 +216,7 @@
 			<formatter type="xml" />
 			<jvmarg value="-Dtestfiledir=${testfiledir}" />
 			<jvmarg value="-Djava.endorsed.dirs=endorsed_lib" />
+			<jvmarg value="-Dtesthost=${testhost}" />
 			<!--<test name="AllTests" todir="${report.dir}"/>-->
 			<batchtest fork="yes" todir="${reports.dir}">
 				<fileset dir="test">
