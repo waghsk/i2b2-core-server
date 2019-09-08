@@ -4,9 +4,9 @@ jobs:
     environment:
       #IMAGE_NAME: jonathancardoso/building-on-ci
     docker:
-      - image: circleci/buildpack-deps:stretch
+      - image: circleci/openjdk:latest
     steps:
-      #- checkout
+      - checkout
       #- setup_remote_docker
       - run:
           name: Build Docker image
