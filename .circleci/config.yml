@@ -1,21 +1,21 @@
- version: 2
-    jobs:
-      build:
-        environment:
-          IMAGE_NAME: i2b2/i2b2-wildfly:circle_ci_test
-        docker:
-          - image: circleci/buildpack-deps:stretch
-        steps:
-          - checkout
-          - setup_remote_docker
-          - run:
-              name: Build Docker image
-              command: docker build -t $IMAGE_NAME:latest .
-    workflows:
-      version: 2
-      build-master:
-        jobs:
-          - build:
-              filters:
-                branches:
+version: 2
+   jobs:
+     build:
+       environment:
+         IMAGE_NAME: i2b2/i2b2-wildfly:circle_ci_test
+       docker:
+         - image: circleci/buildpack-deps:stretch
+       steps:
+         - checkout
+         - setup_remote_docker
+         - run:
+             name: Build Docker image
+             command: docker build -t $IMAGE_NAME:latest .
+   workflows:
+     version: 2
+     build-master:
+       jobs:
+         - build:
+             filters:
+               branches:
                   #only: master
