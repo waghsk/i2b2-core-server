@@ -17,6 +17,6 @@ jobs:
     build-master:
       jobs:
         - build:
-      filters:
-        branches:
-          only: circle-ci
+          filters:
+            branches:
+              only: circle-ci
