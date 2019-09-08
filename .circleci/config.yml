@@ -11,8 +11,8 @@ jobs:
       - run:
           name: Build Docker image
           command: ls -l;
-                   #cd i2b2-core-server-master/edu.harvard.i2b2.server-common;
-                   #ant clean;
+                   cd edu.harvard.i2b2.server-common;
+                   ant clean dist deploy jboss_pre_deployment_setup;
           #echo 'Hello World' 
             #docker build -t $IMAGE_NAME:latest .
 workflows:
