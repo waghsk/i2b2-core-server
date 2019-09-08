@@ -1,0 +1,57 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
+      - image: circleci/python:3.6.1
+        environment:
+          TEST_DATABASE_URL: postgresql://i2b2:demouser@localhost/i2b2
+          
+    # Service container image
+    
+      #- image: circleci/postgres:9.6.5-alpine-ram
+      - image: i2b2/i2b2-pg:p1
+        
+    steps:
+      - checkout
+      - run: sudo apt-get update
+      - run: sudo apt-get install postgresql-client
+      - run: whoami
+      - run: |
+          psql \
+          -d $TEST_DATABASE_URL \
+          -c "CREATE TABLE test (name char(25));"
+      - run: |
+          psql \
+          -d $TEST_DATABASE_URL \
+          -c "INSERT INTO test VALUES ('John'), ('Joanna'), ('Jennifer');"
+      - run: |
+          psql \
+          -d $TEST_DATABASE_URL \
+          -c "SELECT * from test"
+      
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -e .
+
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            pytest
+
+
+      - run:
+          name: build documetation 
+          command: |
+            . venv/bin/activate
+            cd docs
+            make html
