@@ -2,15 +2,15 @@ version: 2
 jobs:
   build:
     environment:
-      IMAGE_NAME: jonathancardoso/building-on-ci
-      docker:
-        - image: circleci/buildpack-deps:stretch
-      steps:
-        - checkout
-        - setup_remote_docker
-        - run:
-            name: Build Docker image
-            command: echo 'Hello World' 
+      #IMAGE_NAME: jonathancardoso/building-on-ci
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build Docker image
+          command: echo 'Hello World' 
             #docker build -t $IMAGE_NAME:latest .
 #  workflows:
 #    version: 2
