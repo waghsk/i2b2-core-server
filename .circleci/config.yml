@@ -6,11 +6,12 @@ jobs:
     docker:
       - image: circleci/openjdk:latest
     steps:
-      - checkout
+      #- checkout
       #- setup_remote_docker
       - run:
           name: Build Docker image
-          command: echo 'Hello World' 
+          command: ant clean
+          #echo 'Hello World' 
             #docker build -t $IMAGE_NAME:latest .
 workflows:
   version: 2
