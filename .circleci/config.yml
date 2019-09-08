@@ -10,8 +10,9 @@ jobs:
       #- setup_remote_docker
       - run:
           name: Build Docker image
-          command: cd i2b2-core-server-master/edu.harvard.i2b2.server-common;
-                   ant clean;
+          command: ls -l;
+                   #cd i2b2-core-server-master/edu.harvard.i2b2.server-common;
+                   #ant clean;
           #echo 'Hello World' 
             #docker build -t $IMAGE_NAME:latest .
 workflows:
