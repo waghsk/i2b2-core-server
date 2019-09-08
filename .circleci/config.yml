@@ -6,11 +6,12 @@ jobs:
     docker:
       - image: circleci/openjdk:latest
     steps:
-      #- checkout
+      - checkout
       #- setup_remote_docker
       - run:
           name: Build Docker image
-          command: ant clean
+          command: cd i2b2-core-server-master/edu.harvard.i2b2.server-common;
+                   ant clean;
           #echo 'Hello World' 
             #docker build -t $IMAGE_NAME:latest .
 workflows:
