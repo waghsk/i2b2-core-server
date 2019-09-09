@@ -22,7 +22,7 @@ jobs:
           name: copy src into local
           command: QSDIR="/home/circleci/i2b2-quickstart/";
                    mkdir -p "${QSDIR}/unzipped_packages/";
-                   mv "/home/circleci/project/" "${QSDIR}/unzipped_packages/i2b2-core-master/";
+                   mv "/home/circleci/project/" "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
                    cd "${QSDIR}/unzipped_packages/";
                    ls -l; 
       - run:
