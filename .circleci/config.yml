@@ -24,7 +24,7 @@ jobs:
                    mkdir -p "${QSDIR}/local/unzipped_packages/;"
                    cp -rv  "/home/circleci/project/" "${QSDIR}/local/unzipped_packages/";
                    ls -l; 
-       - run:
+      - run:
           name: compile
           command: QSDIR="/home/circleci/i2b2-quickstart/";
                    cd "${QSDIR}";
