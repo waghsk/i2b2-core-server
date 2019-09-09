@@ -21,12 +21,14 @@ jobs:
       - run:
           name: copy src into local
           command: QSDIR="/home/circleci/i2b2-quickstart/";
+                   mkdir -p "${QSDIR}/local/unzipped_packages/;
                    cp -rv  "/home/circleci/project/" "${QSDIR}/local/unzipped_packages/";
-                   ls -l;
+                   ls -l; 
+                   sh scripts/install/create_wildfly_circleci.sh;
                    #cp -rv  "${CIRCLE_WORKING_DIRECTORY}" "${QSDIR}/local/unzipped_packages/";
                    #
                    #ls -l "${QSDIR}/local/unzipped_packages/";
-                   #sh scripts/install/create_wildfly_circleci.sh;
+                   #
                    #mkdir -p i2b2-quickstart/local/unzipped_packages;
                    #cp -r edu* i2b2-quickstart/local/unzipped_packages/;
                    
