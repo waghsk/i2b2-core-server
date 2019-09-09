@@ -10,9 +10,9 @@ jobs:
       #- setup_remote_docker
       - run:
           name: Build Docker image
-          command: echo "$working_directory";
-                   mkdir -p "${working_directory}/i2b2-quickstart/local/unzipped_packages";
-                   ls -l;
+          command: echo "working_directory:${working_directory}";
+                   #mkdir -p "${working_directory}/i2b2-quickstart/local/unzipped_packages";
+                   #ls -l;
                    #git clone --depth 1 https://github.com/waghsk/i2b2-quickstart;
                    #cd i2b2-quickstart;
                    #ls -l;
