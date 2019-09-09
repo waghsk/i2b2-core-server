@@ -18,7 +18,7 @@ jobs:
                    cd i2b2-quickstart;
                    cp -rv  "${CIRCLE_WORKING_DIRECTORY}" "${QSDIR}/local/unzipped_packages/";
                    ls -l;
-                   ls -l "${QSDIR}/local/unzipped_packages/"
+                   #ls -l "${QSDIR}/local/unzipped_packages/"
                    #sh scripts/install/create_wildfly_circleci.sh;
                    #mkdir -p i2b2-quickstart/local/unzipped_packages;
                    #cp -r edu* i2b2-quickstart/local/unzipped_packages/;
