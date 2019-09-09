@@ -4,7 +4,7 @@ jobs:
     environment:
       #IMAGE_NAME: jonathancardoso/building-on-ci
     docker:
-      - image: circleci/alpine:latest
+      - image: circleci/openjdk:latest
     steps:
       - checkout 
       #- setup_remote_docker
