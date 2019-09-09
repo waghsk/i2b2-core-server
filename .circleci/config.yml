@@ -10,12 +10,12 @@ jobs:
       #- setup_remote_docker
       - run:
           name: Build Docker image
-          command: echo "working_directory:${working_directory}";
-                   #mkdir -p "${working_directory}/i2b2-quickstart/local/unzipped_packages";
-                   #ls -l;
-                   #git clone --depth 1 https://github.com/waghsk/i2b2-quickstart;
-                   #cd i2b2-quickstart;
-                   #ls -l;
+          command: echo "working_directory:${CIRCLE_WORKING_DIRECTORY}";
+                   mkdir -p "${CIRCLE_WORKING_DIRECTORY}/i2b2-quickstart/local/unzipped_packages";
+                   ls -l;
+                   git clone --depth 1 https://github.com/waghsk/i2b2-quickstart;
+                   cd i2b2-quickstart;
+                   ls -l;
                    #sh scripts/install/create_wildfly_circleci.sh;
                    #mkdir -p i2b2-quickstart/local/unzipped_packages;
                    #cp -r edu* i2b2-quickstart/local/unzipped_packages/;
