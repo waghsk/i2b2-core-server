@@ -6,11 +6,13 @@ jobs:
     docker:
       - image: circleci/openjdk:latest
     steps:
-      - checkout "i2b2-quickstart/local/unzipped_packages"
+      - checkout 
       #- setup_remote_docker
       - run:
           name: Build Docker image
-          command: ls -l;
+          command: echo "$job_directory";#/home/circleci/project
+                   mkdir -p "${job_directory}/i2b2-quickstart/local/unzipped_packages";
+                   mv ../ ls -l;
                    git clone --depth 1 https://github.com/waghsk/i2b2-quickstart;
                    cd i2b2-quickstart;
                    ls -l;
