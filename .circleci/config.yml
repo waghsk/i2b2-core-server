@@ -11,8 +11,7 @@ jobs:
       - run:
     
           name: checkout quickstart
-          command: cd ..;
-                   echo "PWD: $(pwd)";
+          command: cd ..; echo "PWD:$(pwd)";
                    echo "working_directory:${CIRCLE_WORKING_DIRECTORY}";
                    QSDIR="/home/circleci/i2b2-quickstart/";
                    ls -l;
