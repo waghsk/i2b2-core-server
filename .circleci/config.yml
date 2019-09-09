@@ -11,8 +11,15 @@ jobs:
       - run:
           name: Build Docker image
           command: ls -l;
-                   cd edu.harvard.i2b2.server-common;
-                   ant clean dist deploy jboss_pre_deployment_setup;
+                   git clone --depth 1 https://github.com/waghsk/i2b2-quickstart
+                   cd i2b2-quickstart
+                   mkdir -p i2b2-quickstart/local/unzipped_packages;
+                   cp -r edu* i2b2-quickstart/local/unzipped_packages/;
+                   ls -l;
+                   sh scripts/install/create_wildfly_circleci.sh;
+                                       
+                   
+                   #ant clean dist deploy jboss_pre_deployment_setup;
           #echo 'Hello World' 
             #docker build -t $IMAGE_NAME:latest .
 workflows:
