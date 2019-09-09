@@ -11,8 +11,8 @@ jobs:
       - run:
           name: Build Docker image
           command: ls -l;
-                   git clone --depth 1 https://github.com/waghsk/i2b2-quickstart
-                   cd i2b2-quickstart
+                   git clone --depth 1 https://github.com/waghsk/i2b2-quickstart;
+                   cd i2b2-quickstart;
                    mkdir -p i2b2-quickstart/local/unzipped_packages;
                    cp -r edu* i2b2-quickstart/local/unzipped_packages/;
                    ls -l;
