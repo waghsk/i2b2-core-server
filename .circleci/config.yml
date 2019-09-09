@@ -21,7 +21,7 @@ jobs:
       - run:
           name: copy src into local
           command: QSDIR="/home/circleci/i2b2-quickstart/";
-                   cp -rv  "${CIRCLE_WORKING_DIRECTORY}" "${QSDIR}/local/unzipped_packages/";
+                   cp -rv  "/home/circleci/project/" "${QSDIR}/local/unzipped_packages/";
                    ls -l;
                    #cp -rv  "${CIRCLE_WORKING_DIRECTORY}" "${QSDIR}/local/unzipped_packages/";
                    #
