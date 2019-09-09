@@ -6,7 +6,7 @@ jobs:
     docker:
       - image: circleci/openjdk:latest
     steps:
-      - checkout i2b2-quickstart/local/unzipped_packages
+      - checkout "i2b2-quickstart/local/unzipped_packages"
       #- setup_remote_docker
       - run:
           name: Build Docker image
