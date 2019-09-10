@@ -87,3 +87,9 @@ workflows:
          filters:
             branches:
               only: circle-ci
+              
+      - publish-github-release:
+         filters:
+            branches:
+              only: circle-ci
+
