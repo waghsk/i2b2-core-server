@@ -4,7 +4,8 @@ jobs:
     environment:
       #IMAGE_NAME: jonathancardoso/building-on-ci
     docker:
-      - image: circleci/openjdk:latest
+      #- image: circleci/openjdk:latest
+      - image: cibuilds/github:0.10
     steps:
       - checkout 
       #- setup_remote_docker
@@ -28,14 +29,22 @@ jobs:
       - run:
           name: "create tar release"
           command: |
+                   SHORT_COMMIT_ID=`git rev-parse --short=7 ${COMMIT}`
                    QSDIR="/home/circleci/i2b2-quickstart/";
                    cd "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
-                   TAR="${CIRCLE_PROJECT_REPONAME}-${CIRCLE_SHA1}.tar.gz" 
+                   TAR="${CIRCLE_PROJECT_REPONAME}-${SHORT_COMMIT_ID}.tar.gz" 
                    tar -czf "$TAR" *
                    ls -l
                    mkdir -p "${QSDIR}/.artifacts/"
                    mv "$TAR" "${QSDIR}/.artifacts/"
                    ls -l
+                   
+      - run:
+          name: "Publish current commit Release on GitHub"
+          command: |
+                   VERSION=master-latest
+                   ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/                             
+         
       - run:
           name: compile
           command: |
@@ -48,12 +57,7 @@ jobs:
                    #
                    #mkdir -p i2b2-quickstart/local/unzipped_packages;
                    #cp -r edu* i2b2-quickstart/local/unzipped_packages/;
-      - run:
-          name: "Publish current commit Release on GitHub"
-          command: |
-                   VERSION=master-latest
-                   ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/                             
-                   
+          
                    
           #echo 'Hello World' 
             #docker build -t $IMAGE_NAME:latest .
