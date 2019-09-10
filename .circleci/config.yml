@@ -31,7 +31,7 @@ jobs:
           command: |
                    QSDIR="/home/circleci/i2b2-quickstart/";
                    cd "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
-                   SHORT_COMMIT_ID=$(git rev-parse --short=7 ${COMMIT})
+                   SHORT_COMMIT_ID=123;#$(git rev-parse --short=7 ${COMMIT})
                    TAR="${CIRCLE_PROJECT_REPONAME}-${SHORT_COMMIT_ID}.tar.gz" 
                    tar -czf "$TAR" *
                    ls -l
