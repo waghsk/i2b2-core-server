@@ -65,12 +65,7 @@ jobs:
                    QSDIR="/home/circleci/i2b2-quickstart/";
                    cd "${QSDIR}";
                    sh scripts/install/create_wildfly_circleci.sh;
-                   #cp -rv  "${CIRCLE_WORKING_DIRECTORY}" "${QSDIR}/local/unzipped_packages/";
-                   #
-                   #ls -l "${QSDIR}/local/unzipped_packages/";
-                   #
-                   #mkdir -p i2b2-quickstart/local/unzipped_packages;
-                   #cp -r edu* i2b2-quickstart/local/unzipped_packages/;
+             
           
                    
           #echo 'Hello World' 
@@ -85,8 +80,10 @@ jobs:
       - run:
           name: "Publish Release on GitHub1"
           command: |
-                   VERSION=master-latest
-                   ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ../i2b2-quickstart/.artifacts/                             
+                   echo "PWD:$PWD"
+                   ls -l
+                   #VERSION=master-latest
+                   #ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ../i2b2-quickstart/.artifacts/                             
   
 workflows:
   version: 2
