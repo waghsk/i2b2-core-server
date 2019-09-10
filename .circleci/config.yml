@@ -37,8 +37,9 @@ jobs:
       - run:
           name: "install ghr"
           command: |
-                   sudo apt-get update -y
-                   sudo apt-get install -y go-lang
+                   sudo add-apt-repository ppa:longsleep/golang-backports
+                   sudo apt-get update
+                   sudo apt-get install golang-go
           
       - run:
           name: "create tar release"
