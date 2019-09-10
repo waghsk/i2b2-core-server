@@ -1,13 +1,19 @@
 version: 2
 jobs:
+jobs:
   build:
+    machine:
+      image: ubuntu-1604:201903-01
+      docker_layer_caching: true    # default - false
+
+  #build:
     #environment:
       #IMAGE_NAME: jonathancardoso/building-on-ci
     #docker:
     #  - image: circleci/openjdk:latest
     #  - image: cibuilds/github:0.10
       
-    machine:
+   # machine:
     #  - image: ubuntu-1604:201903-01
       
     steps:
