@@ -22,7 +22,7 @@ jobs:
       # into the workspace  for use in downstream job. Must be an absolute path,
       # or relative path from working_directory. This is a directory on the container which is
       # taken to be the root directory of the workspace.
-          root: workspace
+          root: ../i2b2-quickstart/workspace
             # Must be relative path from root
           paths:
             - .artifacts
@@ -53,8 +53,8 @@ jobs:
                    TAR="${CIRCLE_PROJECT_REPONAME}-${SHORT_COMMIT_ID}.tar.gz" 
                    tar -czf "$TAR" *
                    ls -l
-                   mkdir -p "${QSDIR}/.artifacts/"
-                   mv "$TAR" "${QSDIR}/.artifacts/"
+                   mkdir -p "${QSDIR}/workspace/.artifacts/"
+                   mv "$TAR" "${QSDIR}/workspace/.artifacts/"
                    ls -l
                    
      
