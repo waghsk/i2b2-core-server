@@ -1,6 +1,5 @@
 version: 2
 jobs:
-jobs:
   build:
     machine:
       image: ubuntu-1604:201903-01
