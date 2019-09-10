@@ -18,14 +18,7 @@ jobs:
     steps:
       - checkout 
       #- setup_remote_docker
-      - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
-      # into the workspace  for use in downstream job. Must be an absolute path,
-      # or relative path from working_directory. This is a directory on the container which is
-      # taken to be the root directory of the workspace.
-          root: ../i2b2-quickstart/workspace
-            # Must be relative path from root
-          paths:
-            - .artifacts
+
       - run:
           name: checkout quickstart
           command: cd ..; echo "PWD:$(pwd)";
@@ -57,7 +50,15 @@ jobs:
                    mv "$TAR" "${QSDIR}/workspace/.artifacts/"
                    ls -l
                    
-     
+      - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
+      # into the workspace  for use in downstream job. Must be an absolute path,
+      # or relative path from working_directory. This is a directory on the container which is
+      # taken to be the root directory of the workspace.
+          root: ../i2b2-quickstart/workspace
+            # Must be relative path from root
+          paths:
+            - .artifacts
+            
       - run:
           name: compile
           command: |
@@ -80,7 +81,7 @@ jobs:
       - image: cibuilds/github:0.10
     steps:
       - attach_workspace:
-          at: ./artifacts
+          at: .artifacts
       - run:
           name: "Publish Release on GitHub"
           command: |
@@ -97,7 +98,9 @@ workflows:
               only: circle-ci
               
       - publish-github-release:
-         filters:
+          requires:
+            - build
+          filters:
             branches:
               only: circle-ci
 
