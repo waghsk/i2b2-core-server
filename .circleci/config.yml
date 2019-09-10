@@ -37,7 +37,8 @@ jobs:
       - run:
           name: "install ghr"
           command: |
-                   sudo yum install -y go-lang
+                   sudo apt-get update -y
+                   sudo apt-get install -y go-lang
           
       - run:
           name: "create tar release"
