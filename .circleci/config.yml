@@ -80,10 +80,8 @@ jobs:
       - run:
           name: "Publish Release on GitHub1"
           command: |
-                   echo "PWD:$PWD"
-                   ls -l
-                   #VERSION=master-latest
-                   #ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ../i2b2-quickstart/.artifacts/                             
+                   VERSION=master-latest
+                   ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} i2b2-quickstart/workspace/.artifacts/                           
   
 workflows:
   version: 2
