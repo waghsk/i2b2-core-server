@@ -3,9 +3,12 @@ jobs:
   build:
     environment:
       #IMAGE_NAME: jonathancardoso/building-on-ci
-    docker:
-      - image: circleci/openjdk:latest
-      - image: cibuilds/github:0.10
+    #docker:
+    #  - image: circleci/openjdk:latest
+    #  - image: cibuilds/github:0.10
+      
+    machine:
+      - image: ubuntu-1604:201903-01
     steps:
       - checkout 
       #- setup_remote_docker
@@ -25,7 +28,11 @@ jobs:
                    mv "/home/circleci/project/" "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
                    cd "${QSDIR}/unzipped_packages/";
                    ls -l; 
-
+      - run:
+          name: "install ghr"
+          command: |
+                   sudo yum install -y go-lang
+          
       - run:
           name: "create tar release"
           command: |
