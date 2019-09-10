@@ -9,7 +9,6 @@ jobs:
       - checkout 
       #- setup_remote_docker
       - run:
-    
           name: checkout quickstart
           command: cd ..; echo "PWD:$(pwd)";
                    echo "working_directory:${CIRCLE_WORKING_DIRECTORY}";
@@ -27,7 +26,8 @@ jobs:
                    ls -l; 
       - run:
           name: compile
-          command: QSDIR="/home/circleci/i2b2-quickstart/";
+          command: |
+                   QSDIR="/home/circleci/i2b2-quickstart/";
                    cd "${QSDIR}";
                    sh scripts/install/create_wildfly_circleci.sh;
                    #cp -rv  "${CIRCLE_WORKING_DIRECTORY}" "${QSDIR}/local/unzipped_packages/";
@@ -36,22 +36,22 @@ jobs:
                    #
                    #mkdir -p i2b2-quickstart/local/unzipped_packages;
                    #cp -r edu* i2b2-quickstart/local/unzipped_packages/;
-     - run:
-         name: "create tar release"
-         command: |
-            QSDIR="/home/circleci/i2b2-quickstart/";
-            cd "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
-            TAR="${CIRCLE_PROJECT_REPONAME}.${CIRCLE_SHA1}.tar.gz" 
-            tar -czj "$TAR" *
-            ls -l
-            mv "$TAR" "${QSDIR}/.artifacts/$TAR"
-            ls -l
+      - run:
+          name: "create tar release"
+          command: |
+                   QSDIR="/home/circleci/i2b2-quickstart/";
+                   cd "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
+                   TAR="${CIRCLE_PROJECT_REPONAME}.${CIRCLE_SHA1}.tar.gz" 
+                   tar -czj "$TAR" *
+                   ls -l
+                   mv "$TAR" "${QSDIR}/.artifacts/$TAR"
+                   ls -l
  
-     - run:
-         name: "Publish current commit Release on GitHub"
-         command: |
-            VERSION=master-latest
-            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/                             
+      - run:
+          name: "Publish current commit Release on GitHub"
+          command: |
+                   VERSION=master-latest
+                   ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/                             
                    
                    
           #echo 'Hello World' 
