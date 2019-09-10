@@ -98,4 +98,7 @@ workflows:
           filters:
             branches:
               only: circle-ci
+            tags:
+              only: /.*/  #match anything
+               
 
