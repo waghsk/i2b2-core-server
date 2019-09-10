@@ -89,8 +89,8 @@ workflows:
     jobs:
       - build:
          filters:
-            branches:
-              only: circle-ci
+#            branches:
+#              only: circle-ci
             tags:
               only: /.*/  #match anything
               
@@ -98,8 +98,8 @@ workflows:
           requires:
             - build
           filters:
-            branches:
-              only: circle-ci
+ #           branches:
+ #             only: circle-ci
             tags:
               only: /.*/  #match anything
       
