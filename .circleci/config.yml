@@ -24,6 +24,18 @@ jobs:
                    mv "/home/circleci/project/" "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
                    cd "${QSDIR}/unzipped_packages/";
                    ls -l; 
+
+      - run:
+          name: "create tar release"
+          command: |
+                   QSDIR="/home/circleci/i2b2-quickstart/";
+                   cd "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
+                   TAR="${CIRCLE_PROJECT_REPONAME}-${CIRCLE_SHA1}.tar.gz" 
+                   tar -czf "$TAR" *
+                   ls -l
+                   mkdir -p "${QSDIR}/.artifacts/"
+                   mv "$TAR" "${QSDIR}/.artifacts/"
+                   ls -l
       - run:
           name: compile
           command: |
@@ -36,17 +48,6 @@ jobs:
                    #
                    #mkdir -p i2b2-quickstart/local/unzipped_packages;
                    #cp -r edu* i2b2-quickstart/local/unzipped_packages/;
-      - run:
-          name: "create tar release"
-          command: |
-                   QSDIR="/home/circleci/i2b2-quickstart/";
-                   cd "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
-                   TAR="${CIRCLE_PROJECT_REPONAME}-${CIRCLE_SHA1}.tar.gz" 
-                   tar -czf "$TAR" *
-                   ls -l
-                   mv "$TAR" "${QSDIR}/.artifacts/"
-                   ls -l
- 
       - run:
           name: "Publish current commit Release on GitHub"
           command: |
