@@ -41,10 +41,10 @@ jobs:
           command: |
                    QSDIR="/home/circleci/i2b2-quickstart/";
                    cd "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
-                   TAR="${CIRCLE_PROJECT_REPONAME}.${CIRCLE_SHA1}.tar.gz" 
+                   TAR="${CIRCLE_PROJECT_REPONAME}-${CIRCLE_SHA1}.tar.gz" 
                    tar -czf "$TAR" *
                    ls -l
-                   mv "$TAR" "${QSDIR}/.artifacts/$TAR"
+                   mv "$TAR" "${QSDIR}/.artifacts/"
                    ls -l
  
       - run:
