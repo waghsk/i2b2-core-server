@@ -36,10 +36,24 @@ jobs:
                    #
                    #mkdir -p i2b2-quickstart/local/unzipped_packages;
                    #cp -r edu* i2b2-quickstart/local/unzipped_packages/;
+     - run:
+         name: "create tar release"
+         command: |
+            QSDIR="/home/circleci/i2b2-quickstart/";
+            cd "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
+            TAR="${CIRCLE_PROJECT_REPONAME}.${CIRCLE_SHA1}.tar.gz" 
+            tar -czj "$TAR" *
+            ls -l
+            mv "$TAR" "${QSDIR}/.artifacts/$TAR"
+            ls -l
+ 
+     - run:
+         name: "Publish current commit Release on GitHub"
+         command: |
+            VERSION=master-latest
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/                             
                    
-                                       
                    
-                   #ant clean dist deploy jboss_pre_deployment_setup;
           #echo 'Hello World' 
             #docker build -t $IMAGE_NAME:latest .
 workflows:
