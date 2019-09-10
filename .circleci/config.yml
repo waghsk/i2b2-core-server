@@ -7,7 +7,7 @@ jobs:
     #  - image: circleci/openjdk:latest
     #  - image: cibuilds/github:0.10
       
-    #machine:
+    machine:
     #  - image: ubuntu-1604:201903-01
       
     steps:
