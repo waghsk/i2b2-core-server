@@ -42,7 +42,7 @@ jobs:
                    QSDIR="/home/circleci/i2b2-quickstart/";
                    cd "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
                    TAR="${CIRCLE_PROJECT_REPONAME}.${CIRCLE_SHA1}.tar.gz" 
-                   tar -czj "$TAR" *
+                   tar -czf "$TAR" *
                    ls -l
                    mv "$TAR" "${QSDIR}/.artifacts/$TAR"
                    ls -l
