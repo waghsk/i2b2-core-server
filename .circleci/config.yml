@@ -96,9 +96,10 @@ workflows:
           requires:
             - build
           filters:
-            branches:
-              only: circle-ci
             tags:
               only: /.*/  #match anything
+            #branches:
+             # only: circle-ci
+            
                
 
