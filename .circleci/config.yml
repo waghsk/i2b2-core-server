@@ -34,12 +34,7 @@ jobs:
                    mv "/home/circleci/project/" "${QSDIR}/unzipped_packages/i2b2-core-server-master/";
                    cd "${QSDIR}/unzipped_packages/";
                    ls -l; 
-      - run:
-          name: "install ghr"
-          command: |
-                   sudo add-apt-repository ppa:longsleep/golang-backports
-                   sudo apt-get update
-                   sudo apt-get install golang-go
+
           
       - run:
           name: "create tar release"
