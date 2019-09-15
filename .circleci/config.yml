@@ -64,6 +64,7 @@ jobs:
       - run:
           name: compile
           command: |
+                   exit
                    QSDIR="/home/circleci/i2b2-quickstart/";
                    cd "${QSDIR}";
                    sh scripts/install/create_wildfly_circleci.sh;
