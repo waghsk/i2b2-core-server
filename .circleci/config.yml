@@ -49,6 +49,7 @@ jobs:
                    ls -l
                    mkdir -p "${QSDIR}/workspace/.artifacts/"
                    mv "$TAR" "${QSDIR}/workspace/.artifacts/"
+                   cd "${QSDIR}/workspace/.artifacts/"
                    ls -l
                    
       - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
