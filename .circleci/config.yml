@@ -52,15 +52,7 @@ jobs:
                    cd "${QSDIR}/workspace/.artifacts/"
                    ls -l
                    
-      - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
-      # into the workspace  for use in downstream job. Must be an absolute path,
-      # or relative path from working_directory. This is a directory on the container which is
-      # taken to be the root directory of the workspace.
-          root: /home/circleci/i2b2-quickstart/workspace
-            # Must be relative path from root
-          paths:
-            - .artifacts
-            
+
       - run:
           name: compile
           command: |
@@ -73,7 +65,15 @@ jobs:
                    cd "${QSDIR}/workspace/.artifacts/"
                    ls -l
           
-                   
+      - persist_to_workspace: # Persist the specified paths (workspace/echo-output)
+      # into the workspace  for use in downstream job. Must be an absolute path,
+      # or relative path from working_directory. This is a directory on the container which is
+      # taken to be the root directory of the workspace.
+          root: /home/circleci/i2b2-quickstart/workspace
+            # Must be relative path from root
+          paths:
+            - .artifacts
+                             
           #echo 'Hello World' 
             #docker build -t $IMAGE_NAME:latest .
             
