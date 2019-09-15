@@ -91,6 +91,7 @@ jobs:
                    else
                       VERSION=${CIRCLE_BRANCH}-latest
                    fi
+                   echo "VERSION: ${VERSION}"
                    cd "/i2b2-quickstart/workspace" 
                    ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} .artifacts/                           
   
