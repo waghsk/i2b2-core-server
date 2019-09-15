@@ -67,7 +67,10 @@ jobs:
                    QSDIR="/home/circleci/i2b2-quickstart/";
                    cd "${QSDIR}";
                    sh scripts/install/create_wildfly_circleci.sh;
-             
+                   cd /home/circleci/i2b2-quickstart/local/wildfly-9.0.1.Final/standalone/deployments/i2b2.war
+                   jar -cvf i2b2.war *
+                   mv i2b2.war "${QSDIR}/workspace/.artifacts/"
+
           
                    
           #echo 'Hello World' 
