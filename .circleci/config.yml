@@ -56,7 +56,7 @@ jobs:
       # into the workspace  for use in downstream job. Must be an absolute path,
       # or relative path from working_directory. This is a directory on the container which is
       # taken to be the root directory of the workspace.
-          root: ../i2b2-quickstart/workspace
+          root: /home/circleci/i2b2-quickstart/workspace
             # Must be relative path from root
           paths:
             - .artifacts
@@ -78,7 +78,7 @@ jobs:
       - image: cibuilds/github:0.10
     steps:
       - attach_workspace:
-          at: ../../i2b2-quickstart/workspace/.artifacts
+          at: /i2b2-quickstart/workspace/.artifacts
       - run:
           name: "Publish Release on GitHub1"
           command: |
@@ -87,7 +87,8 @@ jobs:
                    else
                       VERSION=master-latest
                    fi
-                   ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ../i2b2-quickstart/workspace/.artifacts/                           
+                   cd "/i2b2-quickstart/workspace" 
+                   ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} .artifacts/                           
   
 workflows:
   version: 2
