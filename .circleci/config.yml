@@ -83,7 +83,7 @@ jobs:
       - image: cibuilds/github:0.10
     steps:
       - attach_workspace:
-          at: /i2b2-quickstart/workspace/.artifacts
+          at: /i2b2-quickstart/workspace/
       - run:
           name: "Publish Release on GitHub1"
           command: |
