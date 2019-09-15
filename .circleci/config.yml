@@ -64,7 +64,6 @@ jobs:
       - run:
           name: compile
           command: |
-                   exit
                    QSDIR="/home/circleci/i2b2-quickstart/";
                    cd "${QSDIR}";
                    sh scripts/install/create_wildfly_circleci.sh;
@@ -86,7 +85,7 @@ jobs:
                    if [[ -v CIRCLE_TAG ]]; then 
                       VERSION=${CIRCLE_TAG}
                    else
-                      VERSION=master-latest
+                      VERSION=${CIRCLE_BRANCH}-latest
                    fi
                    cd "/i2b2-quickstart/workspace" 
                    ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} .artifacts/                           
