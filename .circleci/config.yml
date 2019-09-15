@@ -81,7 +81,11 @@ jobs:
       - run:
           name: "Publish Release on GitHub1"
           command: |
-                   VERSION=master-latest
+                   if [[ -v CIRCLE_TAG ]]; then 
+                      VERSION=${CIRCLE_TAG}
+                   else
+                      VERSION=master-latest
+                   fi
                    ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} i2b2-quickstart/workspace/.artifacts/                           
   
 workflows:
